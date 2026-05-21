@@ -16,9 +16,9 @@ import localizers.Localizer;
 import util.Pose;
 
 /**
- * OpMode for tuning the axial (drive) controller with Panels. Hold X to move the robot 24 inches
- * forward, hold B to move 6 inches backwards, and hold A to move it back to the start position.
- * Adjust the proportional gain, derivative gain, minimum power, and deadzone in Panels.
+ * OpMode for tuning the axial (drive) controller with Panels. Hold X to move the robot 24 inches forward,,
+ * hold B to move 6 inches backwards, and hold A to move it back to the start position. Adjust the
+ * proportional gain, derivative gain, minimum power, and deadzone in Panels.
  *
  * @author Joel - 7842 Browncoats Alumni
  * @author Dylan B. - 18597 RoboClovers - Delta
@@ -47,6 +47,9 @@ public class AxialTuner extends OpMode {
         double error = Math.abs(target - localizer.getPose().getX());
         return error < deadzone;
     }
+
+    private double rawOutput;
+    private double error;
 
     @Override
     public void init() {
@@ -84,8 +87,9 @@ public class AxialTuner extends OpMode {
             headingController.reset(); // Prevent derivative kick when not maintaining heading
         }
 
-        double error = target - this.localizer.getPose().getX();
-        this.drivetrain.moveWithVectors(this.controller.calculateFromError(error), 0, turn);
+        this.error = target - this.localizer.getPose().getX();
+        this.rawOutput = controller.calculate(error);
+        this.drivetrain.moveWithVectors(rawOutput, 0, turn);
     }
 
     @Override
@@ -121,7 +125,9 @@ public class AxialTuner extends OpMode {
 
         fullTelem.addData("Target: ", target);
         fullTelem.addData("Position: ", localizer.getPose().getX());
-        fullTelem.addData("At Target: ", wasAtTarget);
+        fullTelem.addData("Error: ", error);
+        fullTelem.addData("Raw Controller Output: ", rawOutput);
+        fullTelem.addData("Drivetrain Output: ", drivetrain.toString());
         fullTelem.update();
     }
 }
