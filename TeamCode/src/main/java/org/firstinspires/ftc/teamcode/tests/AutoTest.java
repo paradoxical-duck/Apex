@@ -64,7 +64,7 @@ public class AutoTest extends LinearOpMode {
                     telemetry.addData("Target Pose", follower.getTargetPose().toString());
                 } else {
                     // We've reached the final pose
-                    follower.stop(); // Hold position
+                    follower.setTargetPose(poses[poses.length - 1]); // Hold position
                     telemetry.addData("Status", "Done");
                 }
             }
