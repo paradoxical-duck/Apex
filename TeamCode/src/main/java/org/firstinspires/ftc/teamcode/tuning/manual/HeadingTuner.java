@@ -70,7 +70,7 @@ public class HeadingTuner extends OpMode {
     private void moveToTarget(double target) {
         this.target = target;
         controller.setTarget(target);
-        this.rawOutput = -this.controller.calculate(this.localizer.getPose().getHeading());
+        this.rawOutput = this.controller.calculate(this.localizer.getPose().getHeading());
         this.drivetrain.moveWithVectors(0, 0, rawOutput);
     }
 

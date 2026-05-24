@@ -74,12 +74,12 @@ public class StrafeTuner extends OpMode {
 
         double turn = 0;
         if (maintainHeading) {
-            turn = -headingController.calculate(this.localizer.getPose().getHeading());
+            turn = headingController.calculate(this.localizer.getPose().getHeading());
         } else {
             headingController.reset(); // Prevent derivative kick when not maintaining heading
         }
 
-        this.rawOutput = -controller.calculate(this.localizer.getPose().getY());
+        this.rawOutput = controller.calculate(this.localizer.getPose().getY());
         this.drivetrain.moveWithVectors(0, this.rawOutput, turn);
     }
 
