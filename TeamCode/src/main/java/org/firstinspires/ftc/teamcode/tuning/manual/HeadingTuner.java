@@ -38,8 +38,9 @@ public class HeadingTuner extends OpMode {
     public static double proportionalGain; // kP
     public static double derivativeGain; // kD
     public static double minPower; // kL
-    private boolean wasAtTarget = false;
+    public static double tolerance; // Tolerance for being at the target (radians)
 
+    private boolean wasAtTarget = false;
     private double rawOutput;
 
     @Override
@@ -60,6 +61,7 @@ public class HeadingTuner extends OpMode {
         derivativeGain = controller.getCoefficients().kD;
         minPower = controller.getCoefficients().kL;
         deadzone = controller.getDeadzone();
+        tolerance = controller.getTolerance();
 
         fullTelem.addLine(
                 "Hold X to rotate 180 degrees, B to rotate to -45 degrees. and A to move back to the start position."
@@ -80,6 +82,7 @@ public class HeadingTuner extends OpMode {
 
         controller.setCoefficients(new PDFLCoefficients(proportionalGain, derivativeGain, minPower));
         controller.setDeadzone(deadzone);
+        controller.setTolerance(new Angle(tolerance));
 
         if (gamepad1.x) { // Move to 180 degrees when X is held
             moveToTarget(Math.PI);
@@ -104,6 +107,7 @@ public class HeadingTuner extends OpMode {
         fullTelem.addData("Target: ", target);
         fullTelem.addData("Position: ", localizer.getPose().getHeading());
         fullTelem.addData("Error: ", controller.getError());
+        fullTelem.addData("At Target: ", atTarget);
         fullTelem.addData("Raw Controller Output: ", rawOutput);
         fullTelem.addData("Drivetrain Output: ", drivetrain.toString());
         fullTelem.update();
