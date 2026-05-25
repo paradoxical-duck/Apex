@@ -6,6 +6,8 @@ import localizers.Localizer;
 
 /**
  * B-Spline path follower constants class.
+ * Run {@link org.firstinspires.ftc.teamcode.tuning.manual.BSplineTuner} to determine the values of these constants and refer
+ * to the ApexPathing documentation for how to properly tune these constants
  * @author Sohum Arora - 22985 Paraducks
  */
 public class BSplineFollowerConstants extends FollowerConstants {

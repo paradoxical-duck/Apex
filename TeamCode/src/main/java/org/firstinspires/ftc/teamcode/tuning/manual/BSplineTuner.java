@@ -17,8 +17,10 @@ import paths.PathBuilder;
 import util.Pose;
 
 /**
- * OpMode for tuning the BSpline follower with Panels. Hold X to execute the test path forward,
- * and hold A to reset and drive back to the start position. Adjust the translation proportional
+ * OpMode for tuning the BSpline follower with Panels.
+ * Hold X to execute the test path forward,
+ * and hold A to reset and drive back to the start position.
+ * Adjust the translation proportional
  * gain, heading proportional gain, and velocity feedforward in Panels.
  * @author Sohum Arora - 22985 Paraducks
  */
@@ -80,7 +82,6 @@ public class BSplineTuner extends OpMode {
 
         if (gamepad1.x) {
             if (!pathActive) {
-                // Construct a dynamic multi-stage curve utilizing line segments and hold targets
                 currentPath = new PathBuilder(localizer.getPose())
                         .lineTo(new Pose(48, 0, 0))
                         .holdPose(1.5)
@@ -91,7 +92,6 @@ public class BSplineTuner extends OpMode {
             follower.update();
         } else if (gamepad1.a) {
             if (!pathActive) {
-                // Fallback safe path construction directing the tracking loop home
                 currentPath = new PathBuilder(localizer.getPose())
                         .lineTo(new Pose(0, 0, 0))
                         .build();
@@ -115,11 +115,10 @@ public class BSplineTuner extends OpMode {
             gamepad1.setLedColor(1, 0, 0, 100);
         }
 
-        fullTelem.addData("Robot X: ", localizer.getPose().getX());
-        fullTelem.addData("Robot Y: ", localizer.getPose().getY());
-        fullTelem.addData("Robot Heading (Deg): ", Math.toDegrees(localizer.getPose().getHeading()));
-        fullTelem.addData("Follower Busy: ", follower.isBusy());
-        fullTelem.addData("Drivetrain Output: ", drivetrain.toString());
+        fullTelem.addData("Current X", localizer.getPose().getX());
+        fullTelem.addData("Current Y", localizer.getPose().getY());
+        fullTelem.addData("Robot Heading", Math.toDegrees(localizer.getPose().getHeading()));
+        fullTelem.addLine(follower.isBusy() ? "Follower IS busy" : "Follower is NOT busy");
         fullTelem.update();
     }
 }
