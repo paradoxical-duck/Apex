@@ -96,7 +96,7 @@ public class PathBuilder {
                     if (step.poses.length < 2) {
                         throw new IllegalArgumentException("A B-Spline Step requires at least 2 points!");
                     }
-                    this.bSplineTo(step.poses);
+                    this.curveTo(step.poses);
                     break;
 
                 default:
@@ -104,9 +104,9 @@ public class PathBuilder {
             }
 
             if (step.styleOverride != null) {
-                this.interpolateSegment(step.styleOverride);
+                this.interpolateWith(step.styleOverride);
             } else if (step.functionOverride != null) {
-                this.interpolateSegment(step.functionOverride);
+                this.interpolateWith(step.functionOverride);
             }
         }
         return this;
@@ -122,7 +122,7 @@ public class PathBuilder {
      * @return The current PathBuilder instance for method chaining.
      * @throws IllegalArgumentException If too few points are provided to construct a valid B-Spline.
      */
-    public PathBuilder bSplineTo(Pose... poses) {
+    public PathBuilder curveTo(Pose... poses) {
         if (poses.length < 2)
             throw new IllegalArgumentException("A B-Spline must be created with > 1 points!");
 
@@ -159,7 +159,7 @@ public class PathBuilder {
      * @param interpolator The custom HeadingInterpolator to apply to the preceding segment.
      * @return The current PathBuilder instance for method chaining.
      */
-    private PathBuilder interpolateSegment(HeadingInterpolator interpolator) {
+    private PathBuilder interpolateWith(HeadingInterpolator interpolator) {
         path.overrideLastInterpolator(interpolator);
         return this;
     }
@@ -170,12 +170,12 @@ public class PathBuilder {
      * @param style is the style of interpolation
      * @return overrides the previous segment with selected style of interpolation
      */
-    public PathBuilder interpolateSegment(InterpolationStyle style) {
-        return interpolateSegment(new HeadingInterpolator(style));
+    public PathBuilder interpolateWith(InterpolationStyle style) {
+        return interpolateWith(new HeadingInterpolator(style));
     }
 
-    public PathBuilder interpolateSegment(Function<Double, Angle> function) {
-        return interpolateSegment(new HeadingInterpolator(function));
+    public PathBuilder interpolateWith(Function<Double, Angle> function) {
+        return interpolateWith(new HeadingInterpolator(function));
     }
 
     /**

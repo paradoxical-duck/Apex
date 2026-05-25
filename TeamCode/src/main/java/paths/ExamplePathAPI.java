@@ -1,6 +1,5 @@
 package paths;
 
-import paths.heading.HeadingInterpolator;
 import paths.heading.InterpolationStyle;
 import util.Angle;
 import util.Distance;
@@ -19,7 +18,7 @@ public class ExamplePathAPI {
                 // Options: TANGENT_OPTIMAL, TANGENT_FORWARD, SMOOTH_START_TO_END (Default)
 
                 // 3. THE B-SPLINE: A fluid curve through multiple control points.
-                .bSplineTo(
+                .curveTo(
                         // Apex handles unit conversions automatically!
                         new Pose(Distance.Units.MILLIMETERS, 600, 0),
 
@@ -29,7 +28,7 @@ public class ExamplePathAPI {
 
                         // The heading of the FINAL pose dictates the robot's target angle at the end of the curve.
                         new Pose(25, 20, Math.toRadians(90))
-                ).interpolateSegment(InterpolationStyle.TANGENT_OPTIMAL)
+                ).interpolateWith(InterpolationStyle.TANGENT_OPTIMAL)
 
                 // 4. POINT TURN: Stationary rotation.
                 // The robot stops translating, rotates to the target angle, and updates the tracker state.
@@ -42,15 +41,15 @@ public class ExamplePathAPI {
 
                 // 6. IN-LINE OVERRIDE: Overrides the heading strategy of the segment generated directly above it.
                 // This replaces TANGENT_OPTIMAL for that specific lineTo() segment with TANGENT_FORWARD.
-                .interpolateSegment((InterpolationStyle.TANGENT_FORWARD))
+                .interpolateWith((InterpolationStyle.TANGENT_FORWARD))
 
                 // 7. ADVANCED LAMBDA OVERRIDE: Want the robot to spin exactly 3 times over the course of a curve?
                 // You can pass a custom function where 's' is the distance percentage (0.0 to 1.0).
-                .bSplineTo(
+                .curveTo(
                         new Pose(10, 10),
                         new Pose(20, 0, 0)
                 )
-                .interpolateSegment((s -> new Angle(s * (6 * Math.PI))))
+                .interpolateWith((s -> new Angle(s * (6 * Math.PI))))
 
                 // 8. FAILSAFE DEMONSTRATION: Missing headings!
                 // We provide no end heading here. Apex won't crash; it will fall back to TANGENT_FORWARD
