@@ -59,7 +59,7 @@ public class Path {
         public Runnable callback = null;
         public boolean callbackTriggered = false;
         // Define at the top of the class
-        ArrayList<Callback> callbacks = new ArrayList<>();
+        public ArrayList<Callback> callbacks = new ArrayList<>();
 
         public PathNode(PathSegment segment, HeadingInterpolator interpolator) {
             this.type = NodeType.DRIVE;
@@ -123,6 +123,12 @@ public class Path {
         return nodes.get(currentIndex);
     }
 
+    public void withCallback(double s, Runnable callback) {
+        if (!nodes.isEmpty()) {
+            nodes.get(nodes.size() - 1).addCallback(s, callback);
+        }
+    }
+
     /**
      * Advances the path's internal state to the next segment.
      * If the path is already on the last segment, this method does nothing._
@@ -172,11 +178,6 @@ public class Path {
             for (Callback c : node.callbacks) {
                 c.triggered = false;
             }
-        }
-    }
-    public void withCallback(double s, Runnable callback) {
-        if (!nodes.isEmpty()) {
-            nodes.get(nodes.size() - 1).addCallback(s, callback);
         }
     }
 }
