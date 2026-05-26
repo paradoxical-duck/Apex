@@ -26,6 +26,7 @@ public class ExamplePathAPI {
 
                     // Using the (x, y) only constructor.
                     // Intermediate headings are ignored (Apex will warn you if you put one here!)
+                    // Apex defaults no-unit Poses to INCHES, and RADIANS
                     new Pose(15, 10),
 
                     // The heading of the FINAL pose dictates the robot's target angle at the end of the curve.
