@@ -159,6 +159,4 @@ public class SwerveConstants extends DrivetrainConstants {
         this.totalMaxCurrent = amperes;
         return this;
     }
-
-
 }
