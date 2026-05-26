@@ -17,7 +17,7 @@ import util.Pose;
  * Author: DrPixelCat
  * @author Sohum Arora 22985 Paraducks
  */
-public class Path {
+public class BSplinePath {
 
     /**
      * A composite wrapper that securely binds a geometric path segment to its

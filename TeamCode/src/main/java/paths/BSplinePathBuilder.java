@@ -11,7 +11,7 @@ import util.FilletPose;
 import util.Vector;
 
 /**
- * A builder class designed to construct a {@link Path} fluently.
+ * A builder class designed to construct a {@link BSplinePath} fluently.
  * <p>
  * This class keeps track of the robot's state (its last known pose) to automatically
  * link segments together, ensuring continuous paths without needing to manually
@@ -21,8 +21,8 @@ import util.Vector;
  * Author: DrPixelCat
  * @author Sohum Arora 22985 Paraducks
  */
-public class PathBuilder {
-    private final Path path;
+public class BSplinePathBuilder {
+    private final BSplinePath path;
     private Pose lastPose;
     private boolean isPointsAlreadyCreated = false;
     private static final InterpolationStyle DEFAULT_INTERPOLATION = InterpolationStyle.SMOOTH_START_TO_END;
@@ -38,8 +38,8 @@ public class PathBuilder {
      *
      * @param startPose The initial Pose of the robot at the beginning of the path.
      */
-    public PathBuilder(Pose startPose) {
-        this.path = new Path();
+    public BSplinePathBuilder(Pose startPose) {
+        this.path = new BSplinePath();
         this.lastPose = startPose;
     }
 
@@ -58,7 +58,7 @@ public class PathBuilder {
      * @return The current PathBuilder instance for method chaining.
      * @throws IllegalArgumentException If too few points are provided to construct a valid B-Spline.
      */
-    public PathBuilder curveTo(Pose... poses) {
+    public BSplinePathBuilder curveTo(Pose... poses) {
         if (poses.length < 2)
             throw new IllegalArgumentException("A B-Spline must be created with > 1 points!");
 
@@ -95,7 +95,7 @@ public class PathBuilder {
      * @param interpolator The custom HeadingInterpolator to apply to the preceding segment.
      * @return The current PathBuilder instance for method chaining.
      */
-    private PathBuilder interpolateWith(HeadingInterpolator interpolator) {
+    private BSplinePathBuilder interpolateWith(HeadingInterpolator interpolator) {
         path.overrideLastInterpolator(interpolator);
         return this;
     }
@@ -106,11 +106,11 @@ public class PathBuilder {
      * @param style is the style of interpolation
      * @return overrides the previous segment with selected style of interpolation
      */
-    public PathBuilder interpolateWith(InterpolationStyle style) {
+    public BSplinePathBuilder interpolateWith(InterpolationStyle style) {
         return interpolateWith(new HeadingInterpolator(style));
     }
 
-    public PathBuilder interpolateWith(Function<Double, Angle> function) {
+    public BSplinePathBuilder interpolateWith(Function<Double, Angle> function) {
         return interpolateWith(new HeadingInterpolator(function));
     }
 
@@ -121,7 +121,7 @@ public class PathBuilder {
      * @param targetHeading The Angle the robot should turn to face.
      * @return The current PathBuilder instance for method chaining.
      */
-    public PathBuilder turnTo(Angle targetHeading) {
+    public BSplinePathBuilder turnTo(Angle targetHeading) {
         path.addTurn(targetHeading);
 
         // Update the state tracker so the next segment knows our new heading!
@@ -134,7 +134,7 @@ public class PathBuilder {
      * Seamlessly holds the robot's last pose for a specific duration
      * @param durationSeconds - Duration for which pose is held (IN SECONDS)
      */
-    public PathBuilder holdPose(double durationSeconds) {
+    public BSplinePathBuilder holdPose(double durationSeconds) {
         path.addHold(lastPose, durationSeconds);
         return this;
     }
@@ -146,7 +146,7 @@ public class PathBuilder {
      * @param style The style to apply to the whole path
      * @return The current PathBuilder instance for method chaining.
      */
-    public PathBuilder setInterpolationStyle(InterpolationStyle style) {
+    public BSplinePathBuilder setInterpolationStyle(InterpolationStyle style) {
         switch (style) {
             case TANGENT_OPTIMAL:
             case TANGENT_FORWARD:
@@ -164,9 +164,9 @@ public class PathBuilder {
     /**
      * Finalizes the construction process and returns the completed path._
      *
-     * @return The fully constructed {@link Path} object ready for execution._
+     * @return The fully constructed {@link BSplinePath} object ready for execution._
      */
-    public Path build() {
+    public BSplinePath build() {
         return path;
     }
 
@@ -203,7 +203,7 @@ public class PathBuilder {
      * @throws IllegalArgumentException If fewer than 2 points are provided, if endpoints are tightened,
      * or if a tightening radius geometrically exceeds adjacent segment bounds.
      */
-    public PathBuilder addControlPoints(Pose... poses) {
+    public BSplinePathBuilder addControlPoints(Pose... poses) {
         if (isPointsAlreadyCreated) {
             throw new IllegalArgumentException("Only one set of control points can be added to a path!");
         }

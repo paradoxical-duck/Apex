@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.Constants;
 import followers.BSplineFollower;
 import followers.constants.BSplineFollowerConstants;
 import paths.ExamplePathAPIV3;
-import paths.Path;
+import paths.BSplinePath;
 import util.Pose;
 
 /**
@@ -21,7 +21,7 @@ public class BSplineAutoTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         BSplineFollower follower = (BSplineFollower) new Constants().build(hardwareMap, Pose.zero());
-        Path autoPath = new ExamplePathAPIV3(mirror).testPath();
+        BSplinePath autoPath = new ExamplePathAPIV3(mirror).testPath();
 
         while (opModeInInit()){
             telemetry.addLine("Robot initialized");

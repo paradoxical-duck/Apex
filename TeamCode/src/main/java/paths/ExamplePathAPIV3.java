@@ -22,19 +22,18 @@ public class ExamplePathAPIV3 {
         // This will run when the follower reaches 50% of the path
     }
 
-    public Path testPath() {
-        return new PathBuilder(startPose)
+    public BSplinePath testPath() {
+        return new BSplinePathBuilder(startPose)
                 .addControlPoints(
                         pose.at(10, 0),
-                        /* TODO: Implement tighten method in Path */
-                        pose.at(15, 15),
-                        pose.at(25, 25, 90),
-                        pose.filletAt(50, 50, 10)
+                        pose.at(0, 0),
+                        pose.filletAt(15, 30, 10),
+                        pose.at(30, 0, 40)
                 )
-                // TODO: make this function!
-                .addCallback(0.5, () -> {
-                    exampleCallback();
-                })
+                // TODO: make this function! Use s instead of t for better user experience
+//                .addCallback(0.5, () -> {
+//                    exampleCallback();
+//                })
                 .interpolateWith(InterpolationStyle.TANGENT_OPTIMAL)
                 .build();
     }

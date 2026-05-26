@@ -4,7 +4,7 @@ package followers;
 import drivetrains.Drivetrain;
 import followers.constants.BSplineFollowerConstants;
 import localizers.Localizer;
-import paths.Path;
+import paths.BSplinePath;
 import paths.PathSegment;
 import paths.heading.HeadingInterpolator;
 import util.Angle;
@@ -20,7 +20,7 @@ import util.Vector;
 public class BSplineFollower extends Follower {
     private static final double pi2 = 2 * Math.PI;
     private final BSplineFollowerConstants constants;
-    private Path path;
+    private BSplinePath path;
     private long holdStartTimeNs = 0;
     private boolean holdTimerInitialized = false;
     private long pauseStartNs = 0;
@@ -38,7 +38,7 @@ public class BSplineFollower extends Follower {
      * Sets the path to be followed
      * @param path is the path to be followed
      */
-    public void followPath(Path path) {
+    public void followPath(BSplinePath path) {
         this.path = path;
         this.path.reset();
         this.isBusy = true;
@@ -72,10 +72,10 @@ public class BSplineFollower extends Follower {
         }
 
         Pose current = getPose();
-        Path.PathNode currentNode = path.getCurrentNode();
+        BSplinePath.PathNode currentNode = path.getCurrentNode();
 
         //Turn logic
-        if (currentNode.type == Path.NodeType.TURN) {
+        if (currentNode.type == BSplinePath.NodeType.TURN) {
             double targetHeading = currentNode.targetHeading.getRad();
             double currentHeading = current.getHeading();
             double headingError = getShortestAngularDistance(currentHeading, targetHeading);
@@ -92,7 +92,7 @@ public class BSplineFollower extends Follower {
 
             double turnPower = headingError * constants.headingP;
             drive(0, 0, turnPower, currentHeading);
-        } else if (currentNode.type == Path.NodeType.HOLD) {
+        } else if (currentNode.type == BSplinePath.NodeType.HOLD) {
             if (!holdTimerInitialized) {
                 holdStartTimeNs = System.nanoTime();
                 holdTimerInitialized = true;
@@ -120,7 +120,7 @@ public class BSplineFollower extends Follower {
             double turnPower = headingError * constants.headingP;
 
             drive(feedback.getX(), feedback.getY(), turnPower, current.getHeading());
-        } else if (currentNode.type == Path.NodeType.DRIVE) {
+        } else if (currentNode.type == BSplinePath.NodeType.DRIVE) {
             PathSegment segment = currentNode.segment;
             HeadingInterpolator interpolator = currentNode.interpolator;
 
