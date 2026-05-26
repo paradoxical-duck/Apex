@@ -31,6 +31,17 @@ public class Path {
         HOLD
     }
 
+    public static class Callback {
+        public final double s;
+        public final Runnable runnable;
+        public boolean triggered = false;
+
+        public Callback(double s, Runnable runnable) {
+            this.s = s;
+            this.runnable = runnable;
+        }
+    }
+
     public static class PathNode {
         public final NodeType type;
 
@@ -48,7 +59,7 @@ public class Path {
         public Runnable callback = null;
         public boolean callbackTriggered = false;
         // Define at the top of the class
-        ArrayList<Callback> callbacks = new ArrayList<>();
+        public ArrayList<Callback> callbacks = new ArrayList<>();
 
         public PathNode(PathSegment segment, HeadingInterpolator interpolator) {
             this.type = NodeType.DRIVE;
@@ -157,5 +168,10 @@ public class Path {
      */
     public void reset() {
         currentIndex = 0;
+        for (PathNode node : nodes) {
+            for (Callback c : node.callbacks) {
+                c.triggered = false;
+            }
+        }
     }
 }

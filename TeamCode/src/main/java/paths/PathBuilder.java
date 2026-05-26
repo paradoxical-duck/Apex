@@ -22,7 +22,7 @@ import util.Vector;
  * @author Sohum Arora 22985 Paraducks
  */
 public class PathBuilder {
-    private final Path path;
+    public Path path;
     private Pose lastPose;
     private static final InterpolationStyle DEFAULT_INTERPOLATION = InterpolationStyle.SMOOTH_START_TO_END;
     private InterpolationStyle currentStyle = DEFAULT_INTERPOLATION;
@@ -249,7 +249,7 @@ public class PathBuilder {
         // Enforce bounds so the callback doesn't accidentally get placed outside the curve
         double clampedS = Math.max(0.0, Math.min(1.0, s));
 
-        path.addCallbackToLastSegment(clampedS, callback);
+        path.withCallback(clampedS, callback);
         return this;
     }
 }
