@@ -119,7 +119,7 @@ public class PoseFactory {
      * Alias to build a TightenedPose at the coordinates
      * //TODO: Make this cleaner?
      */
-    public FilletPose filletAt(double x, double y, double radius) {
-        return new FilletPose(at(x, y), radius);
+    public ArcPose arcPoseAt(double x, double y, double radius) {
+        return new ArcPose(at(x, y), radius);
     }
 }

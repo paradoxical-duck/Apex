@@ -12,8 +12,8 @@ import drivetrains.Drivetrain;
 import followers.BSplineFollower;
 import followers.constants.BSplineFollowerConstants;
 import localizers.Localizer;
-import paths.BSplinePath;
-import paths.BSplinePathBuilder;
+import paths.Path;
+import paths.PathBuilder;
 import util.Pose;
 
 /**
@@ -33,7 +33,7 @@ public class BSplineTuner extends OpMode {
     private BSplineFollowerConstants followerConstants;
     private JoinedTelemetry fullTelem;
 
-    private BSplinePath currentPath;
+    private Path currentPath;
     private boolean pathActive = false;
 
     public static double translationP;
@@ -82,7 +82,7 @@ public class BSplineTuner extends OpMode {
 
         if (gamepad1.x) {
             if (!pathActive) {
-                currentPath = new BSplinePathBuilder(localizer.getPose())
+                currentPath = new PathBuilder(localizer.getPose())
                         .holdPose(1.5)
                         .build();
                 follower.followPath(currentPath);
@@ -91,7 +91,7 @@ public class BSplineTuner extends OpMode {
             follower.update();
         } else if (gamepad1.a) {
             if (!pathActive) {
-                currentPath = new BSplinePathBuilder(localizer.getPose())
+                currentPath = new PathBuilder(localizer.getPose())
                         .build();
                 follower.followPath(currentPath);
                 pathActive = true;

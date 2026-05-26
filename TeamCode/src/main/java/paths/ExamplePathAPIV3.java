@@ -19,22 +19,39 @@ public class ExamplePathAPIV3 {
     }
 
     public void exampleCallback() {
-        // This will run when the follower reaches 50% of the path
+        // This will run when the follower reaches 50% of the path segment
     }
 
-    public BSplinePath testPath() {
-        return new BSplinePathBuilder(startPose)
+    /**
+     * A comprehensive showcase of every feature available in the BSplinePathBuilder API.
+     * GitHub snoopers: this is still subject to change. Please send suggestions if you have any!
+     */
+    public Path testPath() {
+        return new PathBuilder(startPose) // TODO: I almost wish startPose was in addControlPoints, but I can't think of a good way to do it :\
+
+                // 1. GLOBAL OVERRIDE: Sets the default heading behavior for the entire path
+                .setInterpolationStyle(InterpolationStyle.TANGENT_OPTIMAL)
+
+                // 2. THE CORE B-SPLINE: Demonstrating standard routing, auto-tightening, and educational warnings
+                // A B-Spline can be created with 2 points in Apex because of ghost points that are added during construction
                 .addControlPoints(
-                        pose.at(10, 0),
-                        pose.at(0, 0),
-                        pose.filletAt(15, 30, 10),
-                        pose.at(30, 0, 40)
+                        pose.at(15, 0),             // Standard waypoint
+                        pose.at(25, 0, 90),         // INTENTIONAL WARNING: Apex will ignore this intermediate heading and warn the user!
+                        pose.arcPoseAt(25, 25, 10),  // ArcEnforcement: Forces large, relaxed curves into a sharper turn with a 10in radius while maintaining C2 continuity
+                        pose.at(45, 25, 45)         // The final waypoint dictates the target heading for the end of this curve
                 )
-                // TODO: make this function! Use s instead of t for better user experience
-//                .addCallback(0.5, () -> {
-//                    exampleCallback();
-//                })
-                .interpolateWith(InterpolationStyle.TANGENT_OPTIMAL)
+
+                // 3. IN-LINE CALLBACK: Triggers our custom function exactly halfway (s=0.5) down the curve above
+                .addCallback(0.5, this::exampleCallback) //TODO: Xenon plz review this I just made something rq
+
+                // 5. POINT TURN: The robot stays at (45, 25) and rotates in place to face 180 degrees
+                .turnTo(Angle.fromDeg(180))
+
+                // 7. ADVANCED LAMBDA INTERPOLATOR: Overrides the previous curve's heading logic with custom math.
+                // Here, we command the robot to do a full 360-degree tornado spin over the course of the curve.
+                .interpolateWith(s -> Angle.fromDeg(180 + (s * 360.0)))
+
+                // 8. COMPILE: Locks the path, calculates all Look-Up Tables, and finalizes geometry.
                 .build();
     }
 }
