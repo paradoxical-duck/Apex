@@ -250,14 +250,4 @@ public class PathBuilder {
         path.withCallback(clampedS, callback);
         return this;
     }
-
-    public PathBuilder alongWith(Runnable action) {
-        path.addParallelAction(action);
-        return this;
-    }
-
-    public PathBuilder andThen(Runnable action) {
-        path.addAction(action);
-        return this;
-    }
 }

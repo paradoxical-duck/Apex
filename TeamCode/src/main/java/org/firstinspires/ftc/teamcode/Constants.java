@@ -4,9 +4,6 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import controllers.PDFLController.PDFLCoefficients;
 import controllers.PDSController;
 import core.ApexBuilder;
@@ -33,8 +30,6 @@ import util.Distance;
  * @author Sohum Arora - 22985 Paraducks
  */
 public class Constants extends ApexBuilder {
-    private static final Logger log = LoggerFactory.getLogger(Constants.class);
-
     @Override
     public DrivetrainConstants setDrivetrainConstants() { // Any DrivetrainConstants
         return new MecanumConstants()

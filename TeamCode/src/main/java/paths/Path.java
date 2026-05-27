@@ -1,6 +1,5 @@
 package paths;
 
-import android.telecom.Call;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -127,16 +126,6 @@ public class Path {
 
     public void addHold(Pose holdPose, double durationSeconds) {
         nodes.add(new PathNode(holdPose, durationSeconds));
-    }
-
-    public void addAction(Runnable action) {
-        nodes.add(new PathNode(action));
-    }
-
-    public void addParallelAction(Runnable action) {
-        if (!nodes.isEmpty()) {
-            nodes.get(nodes.size() - 1).callback = action;
-        }
     }
 
     public PathNode getCurrentNode() {
