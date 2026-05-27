@@ -34,7 +34,7 @@ public class BSpline implements ParametricSegment {
      * the curve properly anchors to the first and last input points.
      *
      * @param inputPoints An array of Vector waypoints the spline is built around.
-     * @throws IllegalArgumentException if there are 2 or fewer points provided.
+     * @throws IllegalArgumentException if there are 1 or fewer points provided.
      */
     public BSpline(Vector[] inputPoints) throws IllegalArgumentException {
         if (inputPoints.length <= 2) {

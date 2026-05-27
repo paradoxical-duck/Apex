@@ -107,6 +107,7 @@ public class PathBuilder {
                 Vector p2Vec = arcPose.toVec().add(vecToNext.multiply(radius / distToNext));
 
                 processedPoses.add(new Pose(p1Vec.getX(), p1Vec.getY(), arcPose.getHeading()));
+                processedPoses.add(currentPose);
                 processedPoses.add(new Pose(p2Vec.getX(), p2Vec.getY(), arcPose.getHeading()));
 
             } else {
