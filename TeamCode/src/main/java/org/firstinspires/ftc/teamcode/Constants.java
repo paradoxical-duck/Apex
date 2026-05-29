@@ -9,6 +9,7 @@ import controllers.PDSController;
 import core.ApexBuilder;
 import drivetrains.constants.DrivetrainConstants;
 import drivetrains.constants.MecanumConstants;
+import followers.constants.BSplineFollowerConstants;
 import localizers.constants.LocalizerConstants;
 import localizers.constants.PinpointConstants;
 import followers.constants.FollowerConstants;
@@ -64,6 +65,7 @@ public class Constants extends ApexBuilder {
                 .setStrafeTolerance(Dist.fromIn(1.5))
                 .setMaxAxialPower(1)
                 .setStrafeTolerance(Dist.fromIn(1.5))
+                .setMaxStrafePower(1)
                 .setMaxTurnPower(1);
     }
 
