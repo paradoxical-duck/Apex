@@ -135,4 +135,17 @@ public final class Vector {
     @Override
     public String toString() { return String.format("%s, %s", x.toString(), y.toString()); }
     // endregion
+
+    @Override
+    public boolean equals(Object obj) {
+        // 1. Check for reference equality (same memory address)
+        if (this == obj) return true;
+
+        // 2. Check for null or mismatched class types
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        // 3. Safe cast and delegate component equality to the Dist objects
+        Vector other = (Vector) obj;
+        return this.x.equals(other.x) && this.y.equals(other.y);
+    }
 }

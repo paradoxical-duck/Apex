@@ -1,5 +1,7 @@
 package geometry;
 
+import util.DistUnit;
+
 /**
  * A wrapper class that binds a mathematical parametric curve to physical properties.
  * <p>
@@ -220,5 +222,40 @@ public class PathSegment {
         double numerator = Math.pow(velocityMag, 3);
 
         return numerator / crossProductMag;
+    }
+
+    /**
+     * Retrieves the 2D principal unit normal vector to the curve at a given 't'.
+     * <p>
+     * The principal normal points strictly towards the center of curvature (the "inside"
+     * of the curve). For maximum efficiency, this avoids trigonometric functions by swapping
+     * coordinates, and uses the 2D cross product of velocity and acceleration to determine
+     * the bend direction.
+     *
+     * @param firstDerivative The velocity vector of the segment at the closest point.
+     * @param secondDerivative The acceleration vector of the segment at the closest point.
+     * @return The principal unit normal Vector pointing toward the center of curvature. Returns (0, 0) if the cross product is zero.
+     */
+    public Vector getNormal(Vector firstDerivative, Vector secondDerivative) {
+        double vx = firstDerivative.getX(DistUnit.IN);
+        double vy = firstDerivative.getY(DistUnit.IN);
+
+        // 2D cross product determines if the curve is bending left (positive) or right (negative)
+        double cross = firstDerivative.cross(secondDerivative).getIn();
+
+        if (Math.abs(cross) < 1e-6) {
+            return Vector.zero();
+        }
+
+        Vector normal;
+        if (cross < 0) {
+            // Bending right: swap X and Y, negate the new Y
+            normal = Vector.of(vy, -vx, DistUnit.IN);
+        } else {
+            // Bending left (or perfectly straight): swap X and Y, negate the new X
+            normal = Vector.of(-vy, vx, DistUnit.IN);
+        }
+
+        return normal.normalize();
     }
 }

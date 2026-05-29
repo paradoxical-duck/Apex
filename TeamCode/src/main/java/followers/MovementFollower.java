@@ -170,6 +170,7 @@ public class MovementFollower extends Follower {
             Vector error = targetPoseVec.minus(current.getPos());
 
             double errorMag = error.getMag().getIn();
+            // TODO: test to make sure this type of scaling won't be an issue in the future (since mag is always positive)
             double translationPower = translationController.calculateFromError(errorMag);
             Vector feedback = errorMag > 0 ? error.normalize().times(translationPower) : Vector.zero();
 
@@ -180,16 +181,21 @@ public class MovementFollower extends Follower {
             double driveX = drivePower.getX().getIn();
             double driveY = drivePower.getY().getIn();
 
-            Angle targetAngle = interpolator.getHeading(t, targetVelocity);
+            double distanceRemaining = segment.getDistanceToEnd_in(targetPoseVec, t);
+            double distanceTravelled = segment.getLength_in() - distanceRemaining;
+
+            // Updated this to use distanceRemaining as intended
+            Angle targetAngle = interpolator.getHeading(distanceTravelled / segment.getLength_in(), targetVel);
             double targetHeading = targetAngle.getRad();
             double currentHeading = current.getHeading().getRad();
 
             double headingError = getShortestAngularDistance(currentHeading, targetHeading);
             double turnPower = headingController.calculateFromError(headingError);
 
-            double distance = segment.getDistanceToEnd_in(targetPoseVec, t);
-            if (t >= constants.tTolerance && distance < constants.distanceTolerance) {
-                Vector finalPosition = segment.getPosition(1.0);
+            // TODO: use new getNormal() function to implement centripetal force
+
+            if (t >= constants.tTolerance && distanceRemaining < constants.distanceTolerance) {
+                Vector finalPosition = currentMovement.getEndPose().getPos(); // Used cached pos to avoid extra compute
                 this.setTargetPose(new Pose(finalPosition, Angle.fromRad(targetHeading)));
                 this.holdingPose = true;
                 this.isBusy = false;

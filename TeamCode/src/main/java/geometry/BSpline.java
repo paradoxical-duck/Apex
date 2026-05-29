@@ -38,7 +38,7 @@ public class BSpline implements ParametricSegment {
      * @throws IllegalArgumentException if there are 1 or fewer points provided.
      */
     public BSpline(Vector[] inputPoints) throws IllegalArgumentException {
-        if (inputPoints.length <= 2) {
+        if (inputPoints.length < 2) {
             throw new IllegalArgumentException("You can't make a B-Spline curve with < 2 points!");
         }
 

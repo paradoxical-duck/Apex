@@ -49,12 +49,11 @@ public class TurnBuilder implements MovementBuilder<Turn> {
         // We define the validation math now, but wait to execute it until build() is called
         buildTasks.add((finalTurn) -> {
 
-            double startRad = finalTurn.getStartPose().getHeading().getRad();
-            double endRad = finalTurn.getEndPose().getHeading().getRad();
-            double targetRad = angle.getRad();
+            Angle startRad = finalTurn.getStartPose().getHeading();
+            Angle endRad = finalTurn.getEndPose().getHeading();
 
-            double totalDiff = getShortestAngularDifference(startRad, endRad);
-            double targetDiff = getShortestAngularDifference(startRad, targetRad);
+            double totalDiff = startRad.getShortestAngularDifferenceTo(endRad).getRad();
+            double targetDiff = startRad.getShortestAngularDifferenceTo(angle).getRad();
 
             if (Math.abs(totalDiff) < 1e-6) {
                 if (Math.abs(targetDiff) > 1e-6) {
@@ -89,16 +88,5 @@ public class TurnBuilder implements MovementBuilder<Turn> {
         }
 
         return finalTurn;
-    }
-
-    /**
-     * Helper method to calculate the shortest signed angular difference between two radians.
-     * Result is always in the range [-PI, PI].
-     */
-    private double getShortestAngularDifference(double from, double to) {
-        double diff = (to - from) % (2 * Math.PI);
-        if (diff > Math.PI) diff -= 2 * Math.PI;
-        else if (diff < -Math.PI) diff += 2 * Math.PI;
-        return diff;
     }
 }

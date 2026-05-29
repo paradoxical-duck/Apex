@@ -89,15 +89,17 @@ public class BSplineTuner extends OpMode {
     private void runPath(boolean forward) {
         if (!pathActive) {
             if (!forward) {
-                currentPath = new PathBuilder(localizer.getPose())
+                currentPath = new PathBuilder()
                         .addControlPoints(
+                                localizer.getPose(),
                                 pose.of(24, 24, 90),
                                 pose.of(0, 0, 0)
                         )
                         .build();
             } else {
-                currentPath = new PathBuilder(localizer.getPose())
+                currentPath = new PathBuilder()
                         .addControlPoints(
+                                localizer.getPose(),
                                 pose.of(24, 24, 90),
                                 pose.of(48, 0, 0)
                         )
