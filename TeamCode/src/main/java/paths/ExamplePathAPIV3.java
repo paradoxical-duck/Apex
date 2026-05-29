@@ -39,9 +39,10 @@ public class ExamplePathAPIV3 {
 
         // 1. THE CORE B-SPLINE
         // Demonstrating standard routing, auto-tightening, and educational warnings
-        testPath = new PathBuilder(startPose)
+        testPath = new PathBuilder()
                 // A B-Spline can be created with 2 points in Apex because of ghost points that are added during construction
                 .addControlPoints(
+                        startPose,
                         pose.of(15, 0), // Standard waypoint
                         pose.of(25, 0, 90), // INTENTIONAL WARNING: Apex will ignore this intermediate heading and warn the user!
                         pose.arcPoseOf(25, 25, 10), // ArcEnforcement: Forces large, relaxed curves into a sharper turn with a 10in radius while maintaining C2 continuity

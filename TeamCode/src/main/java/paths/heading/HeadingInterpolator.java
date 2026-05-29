@@ -1,7 +1,6 @@
 package paths.heading;
 
 import geometry.Angle;
-import geometry.GeoUtil;
 import geometry.Vector;
 import java.util.function.Function;
 
@@ -88,13 +87,13 @@ public class HeadingInterpolator {
         Angle backwardTangent = forwardTangent.plus(Angle.fromRad(Math.PI));
 
         // Total rotation cost if drive forward
-        double entryCostFwd = Math.abs(GeoUtil.getShortestAngularDifference(startHeading, forwardTangent));
-        double exitCostFwd  = Math.abs(GeoUtil.getShortestAngularDifference(forwardTangent, endHeading));
+        double entryCostFwd = Math.abs(startHeading.getShortestAngularDifferenceTo(forwardTangent).getRad());
+        double exitCostFwd  = Math.abs(forwardTangent.getShortestAngularDifferenceTo(endHeading).getRad());
         double totalCostFwd = entryCostFwd + exitCostFwd;
 
         // Total rotation cost if drive backward
-        double entryCostBwd = Math.abs(GeoUtil.getShortestAngularDifference(startHeading, backwardTangent));
-        double exitCostBwd  = Math.abs(GeoUtil.getShortestAngularDifference(backwardTangent, endHeading));
+        double entryCostBwd = Math.abs(startHeading.getShortestAngularDifferenceTo(backwardTangent).getRad());
+        double exitCostBwd  = Math.abs(backwardTangent.getShortestAngularDifferenceTo(endHeading).getRad());
         double totalCostBwd = entryCostBwd + exitCostBwd;
 
         // Pick the orientation with the smallest total rotational requirement
@@ -112,7 +111,7 @@ public class HeadingInterpolator {
         // Equation: f(s) = 3s^2 - 2s^3
         double profiledS = (3.0 * s * s) - (2.0 * s * s * s);
 
-        double diffRad = GeoUtil.getShortestAngularDifference(startHeading, endHeading);
+        double diffRad = startHeading.getShortestAngularDifferenceTo(endHeading).getRad();
         double targetRad = startHeading.getRad() + (diffRad * profiledS);
 
         return Angle.fromRad(targetRad);

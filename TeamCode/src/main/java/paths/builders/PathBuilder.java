@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import geometry.GeoUtil;
 import paths.movements.Path;
 import paths.callbacks.Callback;
 import geometry.BSpline;
@@ -30,7 +29,6 @@ public class PathBuilder {
     public Path path;
 
     // State Tracking
-    private final Pose segmentStartPose;
     private Pose expectedEndPose;
     private Pose[] rawPoses = null;
 
@@ -42,17 +40,16 @@ public class PathBuilder {
     private final List<Runnable> buildTasks = new ArrayList<>();
 
     /**
-     * Initializes the PathBuilder with the starting location and heading of the robot.
-     *
-     * @param startPose The initial Pose of the robot at the beginning of the path.
+     * Initializes an empty PathBuilder.
+     * The starting pose must be provided as the first argument in addControlPoints().
      */
-    public PathBuilder(Pose startPose) {
+    public PathBuilder() {
         this.path = new Path();
-        this.segmentStartPose = startPose;
     }
 
     /**
      * Stores a sequence of control points to define a continuous Uniform Cubic B-Spline.
+     * The first Pose in this array defines the start of the path.
      * Any {@link ArcPose} provided is dynamically split into two adjacent control points to round sharp corners.
      * <p>
      * Note: Geometric processing is deferred until {@link #build()} is called.
@@ -140,14 +137,13 @@ public class PathBuilder {
             // Tangent and Custom interpolators sweep dynamically based on curve integration,
             // so we bypass the strict bounds check to prevent falsely crashing the user's build.
             if (currentStyle == InterpolationStyle.SMOOTH_START_TO_END) {
-                double startRad = segmentStartPose.getHeading().getRad();
-                double endRad = expectedEndPose.getHeading().getRad();
+                // Safely evaluate the start rotation using the first control point
+                Angle startRad = rawPoses[0].getHeading();
+                Angle endRad = expectedEndPose.getHeading();
 
-                if (Double.isFinite(startRad) && Double.isFinite(endRad)) {
-                    double targetRad = angle.getRad();
-
-                    double totalDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(endRad));
-                    double targetDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(targetRad));
+                if (Double.isFinite(startRad.getRad()) && Double.isFinite(endRad.getRad())) {
+                    double totalDiff = startRad.getShortestAngularDifferenceTo(endRad).getRad();
+                    double targetDiff = startRad.getShortestAngularDifferenceTo(angle).getRad();
 
                     if (Math.abs(totalDiff) < 1e-6) {
                         if (Math.abs(targetDiff) > 1e-6) {
@@ -228,51 +224,28 @@ public class PathBuilder {
         processedPoses.add(rawPoses[rawPoses.length - 1]);
 
         // 2. Build the curve using the fully processed points
-        Vector[] vectors = new Vector[processedPoses.size() + 1];
-        vectors[0] = segmentStartPose.getPos(); // Inherit end of previous segment
-
+        Vector[] vectors = new Vector[processedPoses.size()];
         for (int i = 0; i < processedPoses.size(); i++) {
-            vectors[i + 1] = processedPoses.get(i).getPos();
+            vectors[i] = processedPoses.get(i).getPos();
         }
 
         PathSegment curve = new PathSegment(new BSpline(vectors));
         path.setParametricPath(curve);
 
         // 3. Inject interpolator state
-        Angle startH = segmentStartPose.getHeading();
+        Angle startH = rawPoses[0].getHeading();
         Angle endH = expectedEndPose.getHeading();
 
-        switch (currentStyle) {
-            case CONSTANT_START_HEADING:
-                if (!Double.isFinite(startH.getRad())) {
-                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs a start heading! Falling back to TANGENT_FORWARD.");
-                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
-                }
-                break;
-            case CONSTANT_END_HEADING:
-                if (!Double.isFinite(endH.getRad())) {
-                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs an end heading! Falling back to TANGENT_FORWARD.");
-                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
-                }
-                break;
-            case TANGENT_CUSTOM:
-                if (!Double.isFinite(customOffset.getRad())) {
-                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs an offset! Falling back to TANGENT_FORWARD.");
-                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
-                }
-                break;
-            case SMOOTH_START_TO_END:
-                if (!Double.isFinite(startH.getRad()) || !Double.isFinite(endH.getRad())) {
-                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs a start heading and end heading! Falling back to TANGENT_FORWARD.");
-                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
-                }
-                break;
-            case CUSTOM_DIST_FUNCTION:
-                if (customFunction == null) {
-                    path.addWarning("APEX WARNING:" + currentStyle.name() + " needs an interpolation function! Falling back to TANGENT_FORWARD.");
-                    currentStyle = InterpolationStyle.TANGENT_FORWARD;
-                }
-                break;
+        boolean missingParams =
+                (currentStyle == InterpolationStyle.CONSTANT_START_HEADING && !Double.isFinite(startH.getRad())) ||
+                        (currentStyle == InterpolationStyle.CONSTANT_END_HEADING && !Double.isFinite(endH.getRad())) ||
+                        (currentStyle == InterpolationStyle.TANGENT_CUSTOM && (customOffset == null || !Double.isFinite(customOffset.getRad()))) ||
+                        (currentStyle == InterpolationStyle.SMOOTH_START_TO_END && (!Double.isFinite(startH.getRad()) || !Double.isFinite(endH.getRad()))) ||
+                        (currentStyle == InterpolationStyle.CUSTOM_DIST_FUNCTION && customFunction == null);
+
+        if (missingParams) {
+            path.addWarning("APEX WARNING: " + currentStyle.name() + " is missing required parameters! Falling back to TANGENT_FORWARD.");
+            currentStyle = InterpolationStyle.TANGENT_FORWARD;
         }
 
         path.setInterpolator(new HeadingInterpolator(currentStyle, startH, endH, customOffset));
@@ -283,9 +256,5 @@ public class PathBuilder {
         }
 
         return path;
-    }
-
-    private void buildSafeInterpolator(InterpolationStyle style, Angle startH, Angle endH, Angle customOffset) {
-
     }
 }

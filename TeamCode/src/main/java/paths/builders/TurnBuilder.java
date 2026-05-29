@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import geometry.GeoUtil;
 import paths.callbacks.Callback;
 import paths.movements.Turn;
 import geometry.Angle;
@@ -50,12 +49,11 @@ public class TurnBuilder implements MovementBuilder<Turn> {
         // We define the validation math now, but wait to execute it until build() is called
         buildTasks.add((finalTurn) -> {
 
-            double startRad = finalTurn.getStartPose().getHeading().getRad();
-            double endRad = finalTurn.getEndPose().getHeading().getRad();
-            double targetRad = angle.getRad();
+            Angle startRad = finalTurn.getStartPose().getHeading();
+            Angle endRad = finalTurn.getEndPose().getHeading();
 
-            double totalDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(endRad));
-            double targetDiff = GeoUtil.getShortestAngularDifference(Angle.fromRad(startRad), Angle.fromRad(targetRad));
+            double totalDiff = startRad.getShortestAngularDifferenceTo(endRad).getRad();
+            double targetDiff = startRad.getShortestAngularDifferenceTo(angle).getRad();
 
             if (Math.abs(totalDiff) < 1e-6) {
                 if (Math.abs(targetDiff) > 1e-6) {
