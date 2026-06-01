@@ -3,7 +3,14 @@ package org.firstinspires.ftc.teamcode.tuning.auto;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.tuning.auto.p2p.AutoTuner;
 
-@TeleOp(name = "Apex Unified Tuner", group = "Apex Pathing Tuning")
+/**
+ * All-in-one tuner capable of running all 3 tuners in just one OpMode, completely automatically
+ * All the user has to do is press a couple of buttons and follow the telemetry instructions! Easy, right?
+ * Note: The old tuners are still there but if we move to this, we only need this!
+ * @author Sohum Arora 29285 Paraducks
+ */
+
+@TeleOp(name = "Apex Tuner", group = "Apex Pathing Tuning")
 public class ApexTuner extends AutoTuner {
     enum TuningState {HEADING, STRAFE, AXIAL, COMPLETE}
     private TuningState currentState = TuningState.HEADING;
