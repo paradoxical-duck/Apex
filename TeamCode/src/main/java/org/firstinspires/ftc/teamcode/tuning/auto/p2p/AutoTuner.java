@@ -44,10 +44,8 @@ public abstract class AutoTuner extends LinearOpMode {
     public PDSController headingController; // For maintaining heading with translational controllers
     public ElapsedTime timer;
 
-    public static double kP;
-    public static double kD;
-    public static double kS;
-    public static double kSDeadzone;
+    // Use a unified PDSCoefficients object instead of static variables
+    public PDSCoefficients coeffs = new PDSCoefficients();
 
     public abstract double getCurrentPosition();
 
@@ -61,7 +59,7 @@ public abstract class AutoTuner extends LinearOpMode {
         drivetrain = constants.buildOnlyDrivetrain(hardwareMap);
         localizer = constants.buildOnlyLocalizer(hardwareMap, Pose.zero());
 
-        controller = new PDSController(new PDSCoefficients(kP, kD, kS, kSDeadzone));
+        controller = new PDSController(coeffs); // Supply unified coefficients directly
         if (angularTuner) {
             // For angular tuners, set the controller to angular mode
             controller.setAngularController();
@@ -116,7 +114,7 @@ public abstract class AutoTuner extends LinearOpMode {
             sleep(WAIT_TIME_BETWEEN_GUESSES_MS);
         }
 
-        kS = guess;
+        coeffs.kS = guess; // Save into unified object
     }
 
     public void kPkDTuner() {
@@ -173,10 +171,10 @@ public abstract class AutoTuner extends LinearOpMode {
         double L = timeStamp - (velAtTimeStamp / maxAccel);
 
         // Derive parallel PD gains using Ziegler-Nichols open-loop formulas
-        kP = 1.2 / (L * maxAccel);
-        kD = 0.6 / maxAccel;
+        coeffs.kP = 1.2 / (L * maxAccel);
+        coeffs.kD = 0.6 / maxAccel;
 
-        controller.setCoefficients(new PDSController.PDSCoefficients(kP, kD, kS, kSDeadzone));
+        controller.setCoefficients(coeffs); // Assign fully tuned object
     }
 
     public void verification() {
@@ -206,9 +204,9 @@ public abstract class AutoTuner extends LinearOpMode {
             telemetry.addData("Phase", "3/3: Final Verification");
             telemetry.addLine("Press A on your gamepad to stop the test while you copy coefficients");
             telemetry.addLine();
-            telemetry.addData("Calculated kP", kP);
-            telemetry.addData("Calculated kD", kD);
-            telemetry.addData("Calculated kS", kS);
+            telemetry.addData("Calculated kP", coeffs.kP);
+            telemetry.addData("Calculated kD", coeffs.kD);
+            telemetry.addData("Calculated kS", coeffs.kS);
             telemetry.addLine();
             telemetry.addData("Current", currentPosition);
             telemetry.addData("Target", verificationTarget);

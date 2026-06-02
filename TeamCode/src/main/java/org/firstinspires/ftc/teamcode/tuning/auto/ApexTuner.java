@@ -2,11 +2,18 @@ package org.firstinspires.ftc.teamcode.tuning.auto;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.tuning.auto.p2p.AutoTuner;
+import controllers.PDSController.PDSCoefficients;
+
+import android.os.Environment;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /**
  * All-in-one tuner capable of running all 3 tuners in just one OpMode, completely automatically
- * All the user has to do is press a couple of buttons and follow the telemetry instructions! Easy, right?
- * Note: The old tuners are still there but if we move to this, we only need this!
+ * All you have to do is follow the telemetry instructions and press a couple of buttons! Easy, right?
+ * Saves the final coefficients directly to the Control Hub storage. No need for copy pasting!
+ * TODO: Coming soon - The constants file will automatically read the file containing the saved coefficients!
  * @author Sohum Arora 29285 Paraducks
  */
 
@@ -14,14 +21,20 @@ import org.firstinspires.ftc.teamcode.tuning.auto.p2p.AutoTuner;
 public class ApexTuner extends AutoTuner {
     enum TuningState {HEADING, STRAFE, AXIAL, COMPLETE}
     private TuningState currentState = TuningState.HEADING;
-    private int phase = 1;
+    int phase = 1;
     private boolean headingRun = false;
     private boolean strafeRun = false;
     private boolean axialRun = false;
+    boolean fileSaved = false;
+
+    private PDSCoefficients headingCoeffs = new PDSCoefficients();
+    private PDSCoefficients strafeCoeffs = new PDSCoefficients();
+    private PDSCoefficients axialCoeffs = new PDSCoefficients();
 
     @Override
     public void runOpMode() throws InterruptedException {
         phase = 1;
+        fileSaved = false;
 
         while (opModeInInit()) {
             telemetry.addLine("Robot Initialized");
@@ -56,7 +69,7 @@ public class ApexTuner extends AutoTuner {
         initializeTuner();
         waitForStart();
 
-        while (opModeIsActive() && currentState != TuningState.COMPLETE) {
+        while (opModeIsActive() && currentState != TuningState.COMPLETE && !isStopRequested()) {
 
             switch (phase) {
                 case 1:
@@ -83,14 +96,42 @@ public class ApexTuner extends AutoTuner {
             }
         }
 
+        if (currentState == TuningState.COMPLETE && !fileSaved) {
+            saveCoefficientsToFile();
+            fileSaved = true;
+        }
+
         while (opModeIsActive()) {
-            telemetry.addData("Status", "All Tuning Cycles Complete!");
+            telemetry.addLine("ALL TUNING CYCLES COMPLETE");
+            telemetry.addLine("Values automatically saved to: /sdcard/FIRST/PDSCoefficients.txt");
+
+            if (headingRun) {
+                telemetry.addLine("\n--- Heading Coefficients ---");
+                telemetry.addData("kP", headingCoeffs.kP);
+                telemetry.addData("kD", headingCoeffs.kD);
+                telemetry.addData("kS", headingCoeffs.kS);
+            }
+            if (strafeRun) {
+                telemetry.addLine("\n--- Strafe Coefficients ---");
+                telemetry.addData("kP", strafeCoeffs.kP);
+                telemetry.addData("kD", strafeCoeffs.kD);
+                telemetry.addData("kS", strafeCoeffs.kS);
+            }
+            if (axialRun) {
+                telemetry.addLine("\n--- Axial Coefficients ---");
+                telemetry.addData("kP", axialCoeffs.kP);
+                telemetry.addData("kD", axialCoeffs.kD);
+                telemetry.addData("kS", axialCoeffs.kS);
+            }
+
             telemetry.update();
             drivetrain.moveWithVectors(0, 0, 0);
         }
     }
 
     private void runTuner(TuningState state) {
+        coeffs = new PDSCoefficients();
+        controller.setCoefficients(coeffs);
 
         switch (state) {
             case HEADING:
@@ -107,6 +148,18 @@ public class ApexTuner extends AutoTuner {
         kSTuner();
         kPkDTuner();
         verifyValues();
+
+        switch (state) {
+            case HEADING:
+                headingCoeffs = new PDSCoefficients(coeffs.kP, coeffs.kD, coeffs.kS, coeffs.kSDeadzone);
+                break;
+            case STRAFE:
+                strafeCoeffs = new PDSCoefficients(coeffs.kP, coeffs.kD, coeffs.kS, coeffs.kSDeadzone);
+                break;
+            case AXIAL:
+                axialCoeffs = new PDSCoefficients(coeffs.kP, coeffs.kD, coeffs.kS, coeffs.kSDeadzone);
+                break;
+        }
 
         drivetrain.moveWithVectors(0, 0, 0);
         sleep(1000);
@@ -142,9 +195,9 @@ public class ApexTuner extends AutoTuner {
             telemetry.addData("Current Tuner", currentState.name());
             telemetry.addLine("Press 'A' (cross) to ACCEPT values & advance to next tuner.");
             telemetry.addLine();
-            telemetry.addData("Calculated kP", kP);
-            telemetry.addData("Calculated kD", kD);
-            telemetry.addData("Calculated kS", kS);
+            telemetry.addData("Calculated kP", coeffs.kP);
+            telemetry.addData("Calculated kD", coeffs.kD);
+            telemetry.addData("Calculated kS", coeffs.kS);
             telemetry.addLine();
             telemetry.addData("Current Position", getCurrentPosition());
             telemetry.addData("Target", verificationTarget);
@@ -174,6 +227,36 @@ public class ApexTuner extends AutoTuner {
                 timer.reset();
             }
         }
+    }
+
+    private void saveCoefficientsToFile() {
+        File directory = new File(Environment.getExternalStorageDirectory(), "FIRST");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        File file = new File(directory, "PDSCoefficients.txt");
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write("[Heading]\n");
+            writer.write("kP=" + headingCoeffs.kP + "\n");
+            writer.write("kD=" + headingCoeffs.kD + "\n");
+            writer.write("kS=" + headingCoeffs.kS + "\n\n");
+
+            writer.write("[Strafe]\n");
+            writer.write("kP=" + strafeCoeffs.kP + "\n");
+            writer.write("kD=" + strafeCoeffs.kD + "\n");
+            writer.write("kS=" + strafeCoeffs.kS + "\n\n");
+
+            writer.write("[Axial]\n");
+            writer.write("kP=" + axialCoeffs.kP + "\n");
+            writer.write("kD=" + axialCoeffs.kD + "\n");
+            writer.write("kS=" + axialCoeffs.kS + "\n");
+
+            telemetry.addLine("File Write Success!");
+        } catch (IOException e) {
+            telemetry.addLine("ERROR: Failed to save coefficients to file: " + e.getMessage());
+        }
+        telemetry.update();
     }
 
     @Override
