@@ -25,7 +25,6 @@ import geometry.Pose;
  * @author Sohum Arora 22985 Paraducks
  */
 public class MovementFollower extends Follower {
-    private static final double pi2 = 2 * Math.PI;
     private final BSplineFollowerConstants constants;
 
     // PDS Controllers for closed-loop feedback
