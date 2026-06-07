@@ -15,8 +15,8 @@ public class FollowerConfig {
     public PDSCoefficients driveCoeffs = new PDSCoefficients();
     public PDSCoefficients velocityCoeffs = new PDSCoefficients();
 
-    public double kV = 0.0;
-    public double kA = 0.0;
+    public double headingKV, headingKA = 0.0;
+    public double lateralKV, lateralKA = 0.0;
     public Dist velocityLimit = null;
 
     public Angle headingTolerance = Angle.fromDeg(1.0);
@@ -44,9 +44,14 @@ public class FollowerConfig {
         this.velocityCoeffs = velocityCoeffs; return this;
     }
 
-    /** Set the feedforward velocity and acceleration coefficients. By default, both values are zero. */
-    public FollowerConfig setFeedforwardCoeffs(double kV, double kA) {
-        this.kV = kV; this.kA = kA; return this;
+    /** Set the heading feedforward velocity and acceleration coefficients. By default, both values are zero. */
+    public FollowerConfig setFeedforwardCoeffs(double headingKV, double headingKA) {
+        this.headingKV = headingKV; this.headingKA = headingKA; return this;
+    }
+
+    /** Set the lateral feedforward velocity and acceleration coefficients. By default, both values are zero. */
+    public FollowerConfig setLateralFeedforwardCoeffs(double kV, double kA) {
+        this.lateralKV = kV; this.lateralKA = kA; return this;
     }
 
     /** Set the velocity limit for the follower. By default, there is no limit. */
