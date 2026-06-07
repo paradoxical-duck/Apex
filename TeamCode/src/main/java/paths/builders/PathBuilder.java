@@ -115,8 +115,8 @@ public class PathBuilder {
                 Angle endRad = expectedEndPose.getHeading();
 
                 if (Double.isFinite(startRad.getRad()) && Double.isFinite(endRad.getRad())) {
-                    double totalDiff = startRad.getShortestAngularDifferenceTo(endRad).getRad();
-                    double targetDiff = startRad.getShortestAngularDifferenceTo(angle).getRad();
+                    double totalDiff = startRad.getShortestAngleTo(endRad).getRad();
+                    double targetDiff = startRad.getShortestAngleTo(angle).getRad();
 
                     if (Math.abs(totalDiff) < 1e-6) {
                         if (Math.abs(targetDiff) > 1e-6) {

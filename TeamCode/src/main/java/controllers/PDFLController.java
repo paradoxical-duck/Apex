@@ -9,7 +9,7 @@ package controllers;
  * <li><b>kL</b> - minimum power (a constant power added in the error's direction to overcome static forces)</li>
  * </ul>
  *
- * @author Joel - 7842 Browncoats Alumni
+ * @author DrPixelCat
  * @author Dylan B. - 18597 RoboClovers - Delta
  */
 public class PDFLController extends Controller {

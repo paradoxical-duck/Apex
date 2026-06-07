@@ -2,15 +2,15 @@ package controllers;
 
 /**
  * A general purpose controller specifically made for controlling a robot.
+ *
  * <ul>
  * <li><b>kP</b> - proportional gain (how aggressively the controller responds to error)</li>
  * <li><b>kD</b> - derivative gain (how much the controller accounts for error rate of change)</li>
  * <li><b>kS</b> - minimum power (a constant power added in the error's direction to overcome static forces)</li>
  * </ul>
  *
- * @see followers.P2PFollower
  * @author Dylan B. - 18597 RoboClovers - Delta
- * @author Joel - 7842 Browncoats Alumni
+ * @author DrPixelCat
  */
 public class PDSController extends Controller {
     private PDSCoefficients coeffs;

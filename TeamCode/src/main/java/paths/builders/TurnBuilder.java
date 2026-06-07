@@ -50,8 +50,8 @@ public class TurnBuilder {
             Angle startRad = finalTurn.getStartPose().getHeading();
             Angle endRad = finalTurn.getEndPose().getHeading();
 
-            double totalDiff = startRad.getShortestAngularDifferenceTo(endRad).getRad();
-            double targetDiff = startRad.getShortestAngularDifferenceTo(angle).getRad();
+            double totalDiff = startRad.getShortestAngleTo(endRad).getRad();
+            double targetDiff = startRad.getShortestAngleTo(angle).getRad();
 
             if (Math.abs(totalDiff) < 1e-6) {
                 if (Math.abs(targetDiff) > 1e-6) {

@@ -9,7 +9,7 @@ import geometry.Dist;
  * Base class for all controllers. Handles common logic like tolerance checking, deadzone, and time anomaly detection.
  * Subclasses implement the specific control algorithm in computeOutput().
  *
- * @author Joel - 7842 Browncoats Alumni
+ * @author DrPixelCat
  * @author Dylan B. 18597 RoboClovers - Delta
  */
 public abstract class Controller {

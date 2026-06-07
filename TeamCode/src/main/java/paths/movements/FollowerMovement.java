@@ -10,7 +10,6 @@ import geometry.Pose;
  * and execute them sequentially.
  */
 public interface FollowerMovement {
-    
     /**
      * Gets the expected final pose of the robot after this movement is completed.
      * This is critical for linking sequential builders together!

@@ -77,7 +77,7 @@ public final class Angle {
      * Calculates the shortest signed angular difference between two angles in radians.
      * Result is always in the range [-PI, PI].
      */
-    public Angle getShortestAngularDifferenceTo(Angle to) {
+    public Angle getShortestAngleTo(Angle to) {
         double diff = to.getRad() - this.getRad();
 
         // Wrap the difference into the [-PI, PI] range

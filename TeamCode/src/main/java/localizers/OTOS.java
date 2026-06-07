@@ -107,7 +107,7 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
             xmlTag = "SparkFunOTOS",
             description = "SparkFun Qwiic Optical Tracking Odometry Sensor, optimized for Apex Pathing"
     )
-    public static class Driver extends I2cDeviceSynchDevice<I2cDeviceSynch> {
+    private static class Driver extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         private final PoseFactory pose = new PoseFactory(DistUnit.M, AngleUnit.RAD);
         private float xPosition = 0;
         private float yPosition = 0;
