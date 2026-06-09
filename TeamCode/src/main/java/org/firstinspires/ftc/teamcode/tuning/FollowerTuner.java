@@ -110,15 +110,15 @@ public class FollowerTuner extends LinearOpMode {
             telemetry.addLine("Tuning order:\n 1) Heading PDS \n 2) Translation PDS \n 3) Velocity FF \n 4) Max Lateral Accel");
             telemetry.addLine("Run the OpMode to proceed with the Heading Tuner");
 
-            if (headingRun) telemetry.addLine("Heading tuner has already been run successfully and the values have been saved");
-            if (translationRun) telemetry.addLine("Translation tuner has already been run successfully and the values have been saved");
-            if (velocityFFRun) telemetry.addLine("Velocity FF tuner has already been run successfully and the values have been saved");
-            if (accelRun) telemetry.addLine("Max Lateral Accel tuner has already been run successfully and the values have been saved");
+            if (headingRun) telemetry.addLine("Heading tuner has already been run and values have been saved");
+            if (translationRun) telemetry.addLine("Translation tuner has already been run and values have been saved");
+            if (velocityFFRun) telemetry.addLine("Velocity FF tuner has already been run and values have been saved");
+            if (accelRun) telemetry.addLine("Max Lateral Accel tuner has already been run and values have been saved");
 
-            telemetry.addLine("Press 'A' (cross) to directly run the Translation Tuner if you have already run the Heading Tuner");
-            telemetry.addLine("Press 'B' (circle) to directly run the Velocity FF Tuner if you have already run the Heading Tuner and Translation Tuner");
-            telemetry.addLine("Once all of these 3 tuners are complete, press 'A' (circle) to run the Max Lateral Acceleration Tuner");
-            telemetry.addLine("IMPORTANT: Do NOT run the tuners out of order");
+            telemetry.addLine("A - Run the Translation Tuner if Heading Tuner has been run. ");
+            telemetry.addLine("B - Run the Velocity FF Tuner if Heading & Translation tuners have been run. ");
+            telemetry.addLine("Once all 3 complete, press A to run Max Lateral Accel Tuner. ");
+            telemetry.addLine("WARNING: Do NOT run the tuners out of order");
 
             if (gamepad1.a) {
                 phase = TuningPhase.TRANSLATION;
@@ -138,7 +138,7 @@ public class FollowerTuner extends LinearOpMode {
         lastB = false;
         lastY = false;
 
-        while (opModeIsActive() && phase != TuningPhase.COMPLETE) {
+        while (opModeIsActive() && phase != TuningPhase.COMPLETE && !isStopRequested()) {
 
             if (gamepad1.y && !lastY) {
                 isPaused = !isPaused;
@@ -152,7 +152,7 @@ public class FollowerTuner extends LinearOpMode {
                     state == TuningState.LATERAL_ACCEL_TEST)) {
 
                 follower.teleOpDrive(0, 0, 0);
-                telemetry.addLine("AUTO TUNER PAUSED. Press 'Y' to resume.");
+                telemetry.addLine("Tuner Paused, Y to resume.");
 
                 lastA = gamepad1.a;
                 lastB = gamepad1.b;
@@ -170,8 +170,8 @@ public class FollowerTuner extends LinearOpMode {
                     switch (state) {
                         case AWAIT_CONFIRM:
                             telemetry.addLine(phase + " phase initialized");
-                            telemetry.addLine("Press 'A' (cross) to TOGGLE mode.");
-                            telemetry.addLine("Press 'B' (circle) to START tuning.");
+                            telemetry.addLine("A - Toggle mode");
+                            telemetry.addLine("B - Start tuning");
                             telemetry.addData("Selected Mode", mode);
 
                             if (gamepad1.a && !lastA) {
@@ -219,13 +219,13 @@ public class FollowerTuner extends LinearOpMode {
                             ksLastGuess = ksGuess;
 
                             follower.teleOpDrive(0, 0, 0);
-                            sleep(500);
+                            timer.wait(500);
                             break;
 
                         case STEP_RESPONSE:
                             if (timer.time(TimeUnit.MILLISECONDS) >= 2000) {
                                 follower.teleOpDrive(0, 0, 0);
-                                sleep(500);
+                                timer.wait(500);
 
                                 double L = stepTimeStamp - (stepVelAtTimeStamp / stepMaxAccel);
                                 double kP = 1.2 / (L * stepMaxAccel);
@@ -274,8 +274,8 @@ public class FollowerTuner extends LinearOpMode {
                             telemetry.addData("Robot Pose", follower.getPose().toString());
 
                             if (!readyToRerun) {
-                                telemetry.addLine("Press 'A' (cross) to SAVE and advance.");
-                                telemetry.addLine("Press 'B' (circle) to RERUN or ADJUST.");
+                                telemetry.addLine("A - Save and advance");
+                                telemetry.addLine("B - Rerun tuner");
 
                                 if (mode == TuningMode.MANUAL) {
                                     telemetry.addLine("--- MANUAL TUNING ---");
@@ -305,8 +305,8 @@ public class FollowerTuner extends LinearOpMode {
                                     readyToRerun = true;
                                 }
                             } else {
-                                telemetry.addLine("Press 'A' (cross) to TOGGLE between AUTO and MANUAL mode.");
-                                telemetry.addLine("Press 'B' (circle) to EXECUTE rerun.");
+                                telemetry.addLine("A - Toggle mode");
+                                telemetry.addLine("B - Rerun tuner");
                                 telemetry.addData("Selected Mode", mode);
 
                                 if (gamepad1.a && !lastA) {
@@ -334,8 +334,8 @@ public class FollowerTuner extends LinearOpMode {
                     switch (state) {
                         case AWAIT_CONFIRM:
                             telemetry.addLine("Phase: VELOCITY_FF initialized");
-                            telemetry.addLine("Press 'A' (cross) to TOGGLE mode.");
-                            telemetry.addLine("Press 'B' (circle) to START tuning.");
+                            telemetry.addLine("A - Toggle mode");
+                            telemetry.addLine("B - Start tuning");
                             telemetry.addData("Selected Mode", mode);
 
                             if (gamepad1.a && !lastA) {
@@ -354,11 +354,11 @@ public class FollowerTuner extends LinearOpMode {
 
                         case VELOCITY_FF:
                             follower.teleOpDrive(0, 1.0, 0);
-                            sleep(1500);
+                            timer.wait(1500);
                             double maxVel = Math.abs(follower.getVelocity().getPos().getX().getIn());
                             velocityFF = 1.0 / maxVel;
                             follower.teleOpDrive(0, 0, 0);
-                            sleep(500);
+                            timer.wait(500);
                             updateFollowerConfig();
                             readyToRerun = false;
                             state = TuningState.CONFIRM;
@@ -369,8 +369,8 @@ public class FollowerTuner extends LinearOpMode {
                             telemetry.addData("Robot Pose", follower.getPose().toString());
 
                             if (!readyToRerun) {
-                                telemetry.addLine("Press 'A' (cross) to SAVE and advance.");
-                                telemetry.addLine("Press 'B' (circle) to RERUN or ADJUST.");
+                                telemetry.addLine("A - Save and advance");
+                                telemetry.addLine("B - Rerun tuner");
 
                                 if (mode == TuningMode.MANUAL) {
                                     telemetry.addLine("--- MANUAL TUNING ---");
@@ -392,8 +392,8 @@ public class FollowerTuner extends LinearOpMode {
                                     readyToRerun = true;
                                 }
                             } else {
-                                telemetry.addLine("Press 'A' (cross) to TOGGLE between AUTO and MANUAL mode.");
-                                telemetry.addLine("Press 'B' (circle) to EXECUTE rerun.");
+                                telemetry.addLine("A - Toggle mode");
+                                telemetry.addLine("B - Execute rerun");
                                 telemetry.addData("Selected Mode", mode);
 
                                 if (gamepad1.a && !lastA) {
@@ -418,8 +418,8 @@ public class FollowerTuner extends LinearOpMode {
                     switch (state) {
                         case AWAIT_CONFIRM:
                             telemetry.addLine("Phase: LATERAL_ACCEL initialized");
-                            telemetry.addLine("Press 'A' (cross) to TOGGLE mode.");
-                            telemetry.addLine("Press 'B' (circle) to START tuning.");
+                            telemetry.addLine("A - Toggle mode");
+                            telemetry.addLine("B - Start tuning");
                             telemetry.addData("Selected Mode", mode);
 
                             if (gamepad1.a && !lastA) {
@@ -472,7 +472,7 @@ public class FollowerTuner extends LinearOpMode {
                                     maxLateralAccel -= 20.0;
                                 } else {
                                     maxLateralAccel += 20.0;
-                                    sleep(1000);
+                                    timer.wait(1000);
                                 }
                                 state = TuningState.LATERAL_ACCEL;
                             }
@@ -502,8 +502,8 @@ public class FollowerTuner extends LinearOpMode {
                                     readyToRerun = true;
                                 }
                             } else {
-                                telemetry.addLine("Press 'A' (cross) to TOGGLE between AUTO and MANUAL mode.");
-                                telemetry.addLine("Press 'B' (circle) to EXECUTE rerun.");
+                                telemetry.addLine("A - Toggle mode");
+                                telemetry.addLine("B - Execute Rerun");
                                 telemetry.addData("Selected Mode", mode);
 
                                 if (gamepad1.a && !lastA) {
@@ -537,7 +537,7 @@ public class FollowerTuner extends LinearOpMode {
             telemetry.update();
         }
 
-        while (opModeIsActive()) {
+        while (opModeIsActive() && !isStopRequested()) {
             telemetry.addData("Status", "All Tuning Cycles Complete! Configuration Saved to JSON.");
             telemetry.update();
             follower.teleOpDrive(0, 0, 0);
@@ -603,6 +603,17 @@ public class FollowerTuner extends LinearOpMode {
             FileWriter fileWriter = new FileWriter(new File(outputFolder, "FollowerConstants.json"));
             fileWriter.write(jsonPayload);
             fileWriter.close();
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+            telemetry.addLine("WARNING: Values were not saved successfully");
+            telemetry.addData("Heading P", headingP);
+            telemetry.addData("Heading D", headingD);
+            telemetry.addData("Heading S", headingS);
+            telemetry.addData("Translation P", translationP);
+            telemetry.addData("Translation D", translationD);
+            telemetry.addData("Translation S", translationS);
+            telemetry.addData("Velocity FF", velocityFF);
+            telemetry.addData("Max Lateral Accel", maxLateralAccel);
+            telemetry.update();
+        }
     }
 }
