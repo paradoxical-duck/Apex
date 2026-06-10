@@ -1,9 +1,10 @@
-package org.firstinspires.ftc.teamcode.tuning;
+package org.firstinspires.ftc.teamcode.apexpathing;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,8 +23,6 @@ import geometry.Vector;
 import paths.builders.Builder;
 import paths.movements.Path;
 import util.DistUnit;
-
-import org.firstinspires.ftc.teamcode.Constants;
 
 /**
  * Single unified automatic tuner capable of completely tuning a robot for Apex in minutes in just a single OpMode!

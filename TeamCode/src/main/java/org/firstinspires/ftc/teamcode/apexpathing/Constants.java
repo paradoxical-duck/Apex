@@ -1,14 +1,11 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.apexpathing;
 
-import controllers.PDSController;
 import core.ApexConfig;
 import core.FollowerConstants;
 import drivetrains.BaseDrivetrainConfig;
 import drivetrains.Mecanum;
 import localizers.BaseLocalizerConfig;
 import localizers.Pinpoint;
-import geometry.Angle;
-import geometry.Dist;
 import util.DistUnit;
 import util.MotorFactory;
 
