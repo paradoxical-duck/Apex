@@ -3,17 +3,37 @@ package paths.movements;
 import geometry.Pose;
 
 /**
- * A marker interface representing any executable navigational action 
- * (e.g., driving a spline path, executing a point turn, or holding a pose).
- * <p>
- * Your Follower class will maintain a queue or list of these movements 
- * and execute them sequentially.
+ * Abstract base class extended by {@link Path} and {@link Turn}
+ * Used in order to track the robot's progression along a particular Path or a Turn, enabling the implementation of robust FSMs in autonomous code
+ * @author Sohum Arora 22985 Paraducks
  */
-public interface FollowerMovement {
+public abstract class FollowerMovement {
+    private boolean started = false;
+    private boolean ended = false;
+
     /**
      * Gets the expected final pose of the robot after this movement is completed.
      * This is critical for linking sequential builders together!
      * @return The final Pose.
      */
-    Pose getEndPose();
+    public abstract Pose getEndPose();
+
+    /**
+     * Below are methods to track a robot's progress along a given FollowerMovement, enabling the implementation of a robust FSM
+     */
+    public boolean hasStarted() {
+        return started;
+    }
+
+    public boolean hasEnded() {
+        return ended;
+    }
+
+    public void setStarted(boolean started) {
+        this.started = started;
+    }
+
+    public void setEnded(boolean ended) {
+        this.ended = ended;
+    }
 }

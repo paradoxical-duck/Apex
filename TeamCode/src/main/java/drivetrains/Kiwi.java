@@ -10,6 +10,8 @@ import util.MotorFactory;
  * Kiwi (also known as Killough or Three-Wheel Omni) drivetrain controller
  *
  * @author Dylan B. - 18597 RoboClovers - Delta
+ *
+ * If you're reading this and you're using a kiwi drive, you're a real one <3
  */
 public class Kiwi extends BaseDrivetrain<Kiwi.Config> {
     private final double sqrt3over2 = Math.sqrt(3) / 2; // Precompute this constant for efficiency

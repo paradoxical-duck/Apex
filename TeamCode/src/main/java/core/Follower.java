@@ -23,7 +23,7 @@ import paths.movements.Turn;
  * @author Xander Haemel 31616 404 Not Found
  */
 public class Follower {
-    private final FollowerConfig config;
+    private final FollowerConstants config;
     private final BaseDrivetrain<?> drivetrain;
     private final BaseLocalizer<?> localizer;
 
@@ -134,12 +134,7 @@ public class Follower {
 
             lastS = s;
 
-            double omegaTarget = robotTangentialVel * kappa;
-            double alphaTarget = (requiredAccel * kappa) + (Math.pow(robotTangentialVel, 2) * dKappa);
-
-            // Heading feedforward
-            headingFeedforward += (omegaTarget * config.headingKV) + (alphaTarget * config.headingKA);
-
+            // Heading power allocation
             double headingFeedback = headingController.calculateFromError(velVec.getTheta().getRad() - currentHeading.getRad());
 
             double turnPow = Range.clip(headingFeedback + headingFeedforward, -1.0, 1.0);
@@ -218,9 +213,11 @@ public class Follower {
             );
         }
 
-        // Update current movement and extract necessary values based on the movement type
         this.currentMovement = movement;
+        this.currentMovement.setStarted(true);
+        this.currentMovement.setEnded(false);
         this.targetHeading = movement.getEndPose().getHeading();
+
         if (movement instanceof Turn) {
             Turn turn = (Turn) currentMovement;
             this.targetTurnPoseVec = turn.getStartPose().getPos();
@@ -237,7 +234,10 @@ public class Follower {
 
     /** Stops the drivetrain and any ongoing movement. The busy state will be set to false. */
     public void stop() {
-        // Reset current movement and temporary values
+        if (this.currentMovement != null) {
+            this.currentMovement.setEnded(true);
+        }
+
         this.currentMovement = null;
         this.segment = null;
         this.targetHeading = null;
@@ -245,7 +245,6 @@ public class Follower {
 
         this.drivetrain.stop();
     }
-
     /** Stops the drivetrain and any ongoing movement. The busy state will remain true. */
     public void pause() {
         this.paused = true;

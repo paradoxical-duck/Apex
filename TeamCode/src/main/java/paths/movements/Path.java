@@ -1,5 +1,7 @@
 package paths.movements;
 
+import org.firstinspires.ftc.teamcode.apexpathing.AutoTest;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,7 +21,7 @@ import geometry.Pose;
  * @author DrPixelCat
  * @author Sohum Arora 22985 Paraducks
  */
-public class Path implements FollowerMovement {
+public class Path extends FollowerMovement {
     private final List<String> buildWarnings = new ArrayList<>();
     private final ArrayList<Callback> callbacks = new ArrayList<>();
 
