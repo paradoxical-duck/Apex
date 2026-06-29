@@ -34,6 +34,17 @@ public class Path extends FollowerMovement {
     private Pose endPose;
     private FeedforwardLut feedforwardLut;
     private boolean isAccelBoosted = false;
+    public enum PathType {
+        HOLONOMIC,
+        TANK
+    }
+    private final PathType pathType;
+
+    /**
+     * Creates a path object for the robot to follow
+     * @param pathType {@link PathType}: HOLONOMIC, or TANK
+     */
+    public Path(PathType pathType) { this.pathType = pathType; }
 
     /**
      * Attaches an executable mechanical/software action to this path.
@@ -102,9 +113,7 @@ public class Path extends FollowerMovement {
      * the physical route the robot will drive.
      * * @param parametricPath The compiled path segment.
      */
-    public void setParametricPath(PathSegment parametricPath) {
-        this.parametricPath = parametricPath;
-    }
+    public void setParametricPath(PathSegment parametricPath) { this.parametricPath = parametricPath; }
 
     /**
      * Retrieves the geometric curve defining the physical route.
@@ -117,15 +126,20 @@ public class Path extends FollowerMovement {
      * at any point along the curve.
      * * @param interpolator The heading generation strategy.
      */
-    public void setInterpolator(HeadingInterpolator interpolator) {
-        this.interpolator = interpolator;
-    }
+    public void setInterpolator(HeadingInterpolator interpolator) { this.interpolator = interpolator; }
 
     /**
      * Retrieves the heading strategy for this path.
      * * @return The heading interpolator.
      */
     public HeadingInterpolator getInterpolator() { return interpolator; }
+
+    /**
+     * @return The type of path: HOLONOMIC, or TANK
+     */
+    public PathType getPathType() {
+        return pathType;
+    }
 
     /**
      * Returns the motion profile of the path
@@ -135,9 +149,11 @@ public class Path extends FollowerMovement {
         return feedforwardLut;
     }
 
-    public void setFeedforwardLut(FeedforwardLut feedforwardLut) {
-        this.feedforwardLut = feedforwardLut;
-    }
+    /**
+     * Set's the path's motion profile as a {@link FeedforwardLut}
+     * @param feedforwardLut The path's motion profile
+     */
+    public void setFeedforwardLut(FeedforwardLut feedforwardLut) { this.feedforwardLut = feedforwardLut; }
 
     /**
      * Determines if this path contains a generated motion profile.
@@ -151,16 +167,12 @@ public class Path extends FollowerMovement {
     /**
      * Determines if this path should be followed with boosted acceleration from PID controllers.
      */
-    public void useBoostedAccel() {
-        isAccelBoosted = true;
-    }
+    public void useBoostedAccel() { isAccelBoosted = true; }
 
     /**
      * @return Whether the path should be followed with boosted acceleration from PID controllers or not.
      */
-    public boolean isAccelBoosted() {
-        return isAccelBoosted;
-    }
+    public boolean isAccelBoosted() { return isAccelBoosted; }
 
     /**
      * Logs a non-fatal warning generated during the path building process
@@ -182,8 +194,5 @@ public class Path extends FollowerMovement {
      *
      * @return A read-only list of warning strings.
      */
-    public List<String> getWarnings() {
-        // Return an unmodifiable view to prevent external modification of the internal list
-        return Collections.unmodifiableList(buildWarnings);
-    }
+    public List<String> getWarnings() { return Collections.unmodifiableList(buildWarnings); }
 }

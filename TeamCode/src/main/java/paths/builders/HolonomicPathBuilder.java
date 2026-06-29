@@ -244,10 +244,27 @@ public class HolonomicPathBuilder {
 
         CubicSpline1D spline = null;
         if (currentStyle == HolonomicInterpolationStyle.NODE_BASED) {
-            if (headingNodes.size() < 2) {
-                throw new IllegalStateException("NODE_BASED interpolation requires at least 2 added HeadingNodes.");
+
+            // Automatically inject path boundary headings if the user didn't explicitly define them
+            boolean hasStart = false;
+            boolean hasEnd = false;
+            for (HeadingNode node : headingNodes) {
+                if (Math.abs(node.pct - 0.0) < 1e-6) hasStart = true;
+                if (Math.abs(node.pct - 1.0) < 1e-6) hasEnd = true;
             }
+
+            if (!hasStart && Double.isFinite(startH.getRad())) {
+                headingNodes.add(new HeadingNode(0.0, startH));
+            }
+            if (!hasEnd && Double.isFinite(endH.getRad())) {
+                headingNodes.add(new HeadingNode(1.0, endH));
+            }
+
             Collections.sort(headingNodes);
+
+            if (headingNodes.size() < 2) {
+                throw new IllegalStateException("NODE_BASED interpolation requires at least a start and end heading.");
+            }
 
             double[] x = new double[headingNodes.size()];
             double[] y = new double[headingNodes.size()];

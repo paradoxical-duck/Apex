@@ -7,6 +7,7 @@ import controllers.MecanumDriveController;
 import controllers.PDSController;
 import drivetrains.BaseDrivetrain;
 import drivetrains.CoaxialSwerve;
+import drivetrains.DualActuated;
 import drivetrains.Tank;
 import feedforward.FeedforwardLut;
 import feedforward.MotionParameters;
@@ -78,6 +79,8 @@ public class Follower {
         );
         velocityFeedbackGain = this.config.velocityFeedbackGain;
     }
+
+    // region Callbacks
 
     /**
      * Evaluates all callbacks attached to the current movement and executes them if their conditions are met.
@@ -152,6 +155,7 @@ public class Follower {
         double deltaT_seconds = (lastNano != -1) ? (currentNano - lastNano) / 1e9 : 0.0;
         lastNano = currentNano;
 
+        // region Turn Execution
         if (currentMovement instanceof Turn) {
             Turn turn = (Turn) currentMovement;
 
@@ -197,7 +201,7 @@ public class Follower {
         } else if (segment == null) {
             this.stop();
             return;
-
+        // region Holonomic Following
         } else if (drivetrain.isHolonomic()) {
             // Retrieve path geometry at closest point
             double t = segment.getBestT(currentPos);
@@ -317,6 +321,7 @@ public class Follower {
             }
 
             drivetrain.drive(finalDriveOutput.getX().getIn(), finalDriveOutput.getY().getIn(), turnPow);
+        // region Tank Following
         } else {
             // Process tank driving via Ramsete controller
             double t = segment.getBestT(currentPos);
@@ -374,14 +379,7 @@ public class Follower {
         }
     }
 
-    /**
-     * Checks if the follower is currently executing a movement.
-     *
-     * @return true if a movement is in progress false otherwise.
-     */
-    public boolean isBusy() {
-        return currentMovement != null;
-    }
+    //region Initialize Sequence
 
     /**
      * Starts following the given movement.
@@ -407,6 +405,13 @@ public class Follower {
         } else if (movement instanceof Path) {
             Path pathSegmentMove = (Path) currentMovement;
             this.segment = pathSegmentMove.getParametricPath();
+            if (drivetrain instanceof DualActuated) {
+                if (pathSegmentMove.getPathType() == Path.PathType.HOLONOMIC) {
+                    ((DualActuated) drivetrain).activateHolonomicState();
+                } else {
+                    ((DualActuated) drivetrain).activateTractionState();
+                }
+            }
         }
 
         headingController.reset();
@@ -415,6 +420,8 @@ public class Follower {
         // Reset sweeping tracker for angular callbacks so it doesn't instantly trigger on path start
         lastHeading = null;
     }
+
+    // region Public Methods
 
     /**
      * Instantly stops the drivetrain and ends any ongoing movement.
@@ -471,17 +478,22 @@ public class Follower {
      * @param y The forward and backward drive input positive for forward.
      * @param turn The rotation input positive for counterclockwise.
      */
-    public void teleOpDrive(double x, double y, double turn) {
-        teleOpDrive(x, y, turn, 0);
-    }
+    public void teleOpDrive(double x, double y, double turn) { teleOpDrive(x, y, turn, 0); }
 
     /**
      * Retrieves the robots current pose estimate from the localizer.
      *
      * @return The current global position and heading.
      */
-    public Pose getPose() {
-        return localizer.getPose();
+    public Pose getPose() { return localizer.getPose(); }
+
+    /**
+     * Checks if the follower is currently executing a movement.
+     *
+     * @return true if a movement is in progress false otherwise.
+     */
+    public boolean isBusy() {
+        return currentMovement != null;
     }
 
     /**
@@ -489,25 +501,19 @@ public class Follower {
      *
      * @param pose The new global position and heading.
      */
-    public void setPose(Pose pose) {
-        localizer.setPose(pose);
-    }
+    public void setPose(Pose pose) { localizer.setPose(pose); }
 
     /**
      * Retrieves the robots current velocity estimate from the localizer.
      *
      * @return The current velocity expressed in robot local frame.
      */
-    public Pose getVelocity() {
-        return localizer.getVel();
-    }
+    public Pose getVelocity() { return localizer.getVel(); }
 
     /**
      * Retrieves the robots current acceleration estimate from the localizer.
      *
      * @return The current acceleration expressed in robot local frame.
      */
-    public Pose getAcceleration() {
-        return localizer.getAccel();
-    }
+    public Pose getAcceleration() { return localizer.getAccel(); }
 }

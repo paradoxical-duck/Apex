@@ -22,29 +22,35 @@ public class CubicSpline1D {
             if (h[i] <= 0) throw new IllegalArgumentException("x values must be strictly increasing.");
         }
 
-        double[] alpha = new double[n];
+        double[] alpha = new double[n + 1];
+
+        // Clamped boundary conditions: f'(start) = 0 and f'(end) = 0
+        alpha[0] = 3.0 * (a[1] - a[0]) / h[0];
         for (int i = 1; i < n; i++) {
             alpha[i] = 3.0 * (a[i + 1] - a[i]) / h[i] - 3.0 * (a[i] - a[i - 1]) / h[i - 1];
         }
+        alpha[n] = -3.0 * (a[n] - a[n - 1]) / h[n - 1];
 
         double[] l = new double[n + 1];
         double[] mu = new double[n + 1];
         double[] z = new double[n + 1];
 
-        l[0] = 1.0; 
-        mu[0] = 0.0; 
-        z[0] = 0.0;
-        
+        // Forward Elimination
+        l[0] = 2.0 * h[0];
+        mu[0] = 0.5;
+        z[0] = alpha[0] / l[0];
+
         for (int i = 1; i < n; i++) {
             l[i] = 2.0 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
             mu[i] = h[i] / l[i];
             z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
         }
-        
-        l[n] = 1.0; 
-        z[n] = 0.0; 
-        c[n] = 0.0;
 
+        l[n] = 2.0 * h[n - 1] - h[n - 1] * mu[n - 1];
+        z[n] = (alpha[n] - h[n - 1] * z[n - 1]) / l[n];
+        c[n] = z[n];
+
+        // Back Substitution
         for (int j = n - 1; j >= 0; j--) {
             c[j] = z[j] - mu[j] * c[j + 1];
             b[j] = (a[j + 1] - a[j]) / h[j] - h[j] * (c[j + 1] + 2.0 * c[j]) / 3.0;
