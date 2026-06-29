@@ -77,7 +77,7 @@ public abstract class BaseDrivetrainConfig<T extends BaseDrivetrainConfig<T>> {
      */
     @SuppressWarnings("unchecked")
     public T setMaxPower(double maxPower) {
-        this.maxPower = maxPower; return (T) this;
+        this.maxPower = Math.max(Math.min(0.0, maxPower), 1.0); return (T) this;
     }
 
     /**
