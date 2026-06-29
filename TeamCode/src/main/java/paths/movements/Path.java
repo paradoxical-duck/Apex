@@ -33,12 +33,7 @@ public class Path extends FollowerMovement {
     private HeadingInterpolator interpolator;
     private Pose endPose;
     private FeedforwardLut feedforwardLut;
-    private final boolean isTankPath;
-
-
-    public Path(boolean isTankPath) {
-        this.isTankPath = isTankPath;
-    }
+    private boolean isAccelBoosted = false;
 
     /**
      * Attaches an executable mechanical/software action to this path.
@@ -61,6 +56,27 @@ public class Path extends FollowerMovement {
      * @return the path's kinematic constraints
      */
     public PathConstraint[] getConstraints() { return constraints.toArray(new PathConstraint[0]); }
+
+    /**
+     * Evaluates the active velocity constraints for unprofiled quick builds.
+     * Acts as a step function: the velocity limit changes when the robot crosses a constraint's 's' threshold.
+     *
+     * @param s The current geometric progression percentage [0.0, 1.0].
+     * @param defaultLimit The hardware maximum velocity from FollowerConstants.
+     * @return The active velocity limit in inches per second.
+     */
+    public double getQuickVelocityLimit(double s, double defaultLimit) {
+        double currentLimit = defaultLimit;
+        double highestS = -1.0;
+
+        for (PathConstraint constraint : constraints) {
+            if (s >= constraint.s && constraint.s > highestS) {
+                currentLimit = constraint.value_in;
+                highestS = constraint.s;
+            }
+        }
+        return currentLimit;
+    }
 
     /**
      * Sets the final target pose (coordinates and heading) of this path.
@@ -129,6 +145,21 @@ public class Path extends FollowerMovement {
      */
     public boolean isProfiled() {
         return feedforwardLut != null;
+    }
+
+
+    /**
+     * Determines if this path should be followed with boosted acceleration from PID controllers.
+     */
+    public void useBoostedAccel() {
+        isAccelBoosted = true;
+    }
+
+    /**
+     * @return Whether the path should be followed with boosted acceleration from PID controllers or not.
+     */
+    public boolean isAccelBoosted() {
+        return isAccelBoosted;
     }
 
     /**

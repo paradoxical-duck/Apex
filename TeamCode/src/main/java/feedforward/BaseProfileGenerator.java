@@ -24,7 +24,6 @@ public abstract class BaseProfileGenerator {
     }
 
     // region Abstract Methods
-
     protected abstract double calculateMaxTangentialVelocity(PathPoint point, PathPoint lastPoint, Path path, double maxAngVel, double maxAngAccel);
 
     protected abstract void evaluatePoint(
@@ -119,6 +118,10 @@ public abstract class BaseProfileGenerator {
             log.iteration = iter;
             log.pinnedIndex = globalWorstIndex;
             log.maxUtilization = worstEvalState.maxUtilization;
+            log.totalPower = worstEvalState.totalPower;
+            log.pForward = worstEvalState.pForward;
+            log.pLateral = worstEvalState.pLateral;
+            log.pHeading = worstEvalState.pHeading;
             lastReport.logs.add(log);
 
             runBackwardPass(outputParams, points, path);
@@ -142,7 +145,11 @@ public abstract class BaseProfileGenerator {
         }
 
         // Backward pass: Naive deceleration
-        lut[points.length - 1].setTangentialVel(0.0);
+        // If boosted, relax the boundary condition so the path ends at cruising speed
+        if (!path.isAccelBoosted()) {
+            lut[points.length - 1].setTangentialVel(0.0);
+        }
+
         for (int i = points.length - 2; i >= 0; i--) {
             double ds = Math.abs(points[i + 1].getDistanceToEnd_in() - points[i].getDistanceToEnd_in());
             double nextVel = lut[i + 1].getTangentialVel();
@@ -151,7 +158,11 @@ public abstract class BaseProfileGenerator {
         }
 
         // Forward pass: Naive acceleration and populate angular targets
-        lut[0].setTangentialVel(0.0);
+        // If boosted, relax the boundary condition so the path begins at cruising speed
+        if (!path.isAccelBoosted()) {
+            lut[0].setTangentialVel(0.0);
+        }
+
         for (int i = 1; i < points.length; i++) {
             double ds = Math.abs(points[i].getDistanceToEnd_in() - points[i - 1].getDistanceToEnd_in());
             double prevVel = lut[i - 1].getTangentialVel();
@@ -215,7 +226,11 @@ public abstract class BaseProfileGenerator {
     }
 
     private void runBackwardPass(MotionParameters[] lut, PathPoint[] points, Path path) {
-        lut[points.length - 1].setTangentialVel(0.0);
+        // If boosted, relax the boundary condition so the path ends at cruising speed
+        if (!path.isAccelBoosted()) {
+            lut[points.length - 1].setTangentialVel(0.0);
+        }
+
         double pathLength_in = path.getParametricPath().getLengthIn();
         PathConstraint[] constraints = path.getConstraints();
 
@@ -248,7 +263,12 @@ public abstract class BaseProfileGenerator {
     }
 
     private void runForwardPass(MotionParameters[] lut, PathPoint[] points, Path path) {
-        lut[0].setTangentialVel(0.0);
+        /* If boosted, relax the boundary condition so the path begins at cruising speed so the
+        feedback controller can provide maximum +/- power */
+        if (!path.isAccelBoosted()) {
+            lut[0].setTangentialVel(0.0);
+        }
+
         double pathLength_in = path.getParametricPath().getLengthIn();
         PathConstraint[] constraints = path.getConstraints();
 

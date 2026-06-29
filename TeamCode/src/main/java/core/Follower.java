@@ -274,9 +274,22 @@ public class Follower {
                             (config.translationalKA * targets.getTangentialAccel()) +
                             (Math.signum(targets.getTangentialVel()) * config.translationalCoeffs.kS);
 
-                    totalTangentPower = ((targets.getTangentialVel() - robotTangentialVel) * velocityFeedbackGain) + feedforward;
+                    totalTangentPower = ((targets.getTangentialVel() - robotTangentialVel) * velocityFeedbackGain) + feedforward; //TODO: Verify p only feedback performance, compare to SquID
+                    if (path.isAccelBoosted()) {
+                        totalTangentPower = Math.min(
+                                totalTangentPower,
+                                mecanumDriveController.pds.calculateFromError(distanceRemaining));
+                    }
                 } else {
-                    totalTangentPower = mecanumDriveController.pds.calculateFromError(distanceRemaining);
+                    double decelPower = mecanumDriveController.pds.calculateFromError(distanceRemaining);
+                    double percentage = 1.0 - (s / path.getParametricPath().getLengthIn());
+                    double percentageClipped = Math.min(Math.max(percentage, 0.0), 1.0);
+                    double maxVel = path.getQuickVelocityLimit(percentageClipped, config.forwardVelocityLimit.getIn());
+                    double velError = maxVel - robotTangentialVel;
+                    double accelPower = (maxVel * config.translationalKV)
+                            + (Math.signum(maxVel) * config.translationalCoeffs.kS)
+                            + (velError * velocityFeedbackGain);
+                    totalTangentPower = Math.min(accelPower, decelPower);
                 }
             } else {
                 // Apply reverse feedback if robot drifts past the final point
@@ -304,7 +317,6 @@ public class Follower {
             }
 
             drivetrain.drive(finalDriveOutput.getX().getIn(), finalDriveOutput.getY().getIn(), turnPow);
-
         } else {
             // Process tank driving via Ramsete controller
             double t = segment.getBestT(currentPos);

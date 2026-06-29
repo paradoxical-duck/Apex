@@ -2,6 +2,7 @@ package paths.builders;
 
 import core.FollowerConstants;
 import feedforward.FeedforwardLut;
+import feedforward.MotionParameters;
 import feedforward.holonomic.mecanum.MecanumProfileGenerator;
 import feedforward.holonomic.swerve.SwerveProfileGenerator;
 import geometry.BSpline;
@@ -116,10 +117,14 @@ public class HolonomicPathBuilder {
     }
 
     /**
-     * Adds a kinematic constraint to the path at a specific distance percentage.
+     * Adds a kinematic constraint to the path at a specific distance percentage from 0 to 1.
+     * <p>
+     * NOTE: Only velocity can be limited on a quickBuild
+     * </p>
      *
      * @param s The distance percentage along the path in bounds [0, 1].
-     * @param constraintType The type of constraint to apply.
+     * @param constraintType The type { VELOCITY, ACCELERATION, ANGULAR_VELOCITY, ANGULAR ACCELERATION }
+     *                       of constraint to apply.
      * @param value The value of the constraint.
      * @return The current HolonomicPathBuilder instance for method chaining.
      */
@@ -284,7 +289,7 @@ public class HolonomicPathBuilder {
 
     /**
      * Builds the path geometry without generating a physical motion profile.
-     * The follower will default to purely geometric lookahead/positional tracking.
+     * The follower will automatically use dynamic velocity-bounded feedback.
      *
      * @return The constructed Path.
      */

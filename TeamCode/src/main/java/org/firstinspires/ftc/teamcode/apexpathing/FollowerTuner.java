@@ -90,18 +90,18 @@ public class FollowerTuner extends LinearOpMode {
         headingP = defaults.headingCoeffs.kP;
         headingD = defaults.headingCoeffs.kD;
         headingS = defaults.headingCoeffs.kS;
-        translationP = defaults.driveCoeffs.kP;
-        translationD = defaults.driveCoeffs.kD;
-        translationS = defaults.driveCoeffs.kS;
+        translationP = defaults.translationalCoeffs.kP;
+        translationD = defaults.translationalCoeffs.kD;
+        translationS = defaults.translationalCoeffs.kS;
         velocityFF = defaults.translationalKV;
         headingToleranceDeg = defaults.headingTolerance.getDeg();
         distanceToleranceIn = defaults.distanceTolerance.getIn();
-        maxLateralAccel = defaults.maxLateralAccel > 10 ? defaults.maxLateralAccel : 40.0;
+        maxLateralAccel = defaults.forwardAccelerationLimit.getIn() > 10 ? defaults.forwardAccelerationLimit.getIn() : 40.0;
 
         boolean headingRun = defaults.headingCoeffs.kP != 0.0 || defaults.headingCoeffs.kD != 0.0 || defaults.headingCoeffs.kS != 0.0;
-        boolean translationRun = defaults.driveCoeffs.kP != 0.0 || defaults.driveCoeffs.kD != 0.0 || defaults.driveCoeffs.kS != 0.0;
+        boolean translationRun = defaults.translationalCoeffs.kP != 0.0 || defaults.translationalCoeffs.kD != 0.0 || defaults.translationalCoeffs.kS != 0.0;
         boolean velocityFFRun = defaults.translationalKV != 0.0;
-        boolean accelRun = defaults.maxLateralAccel > 10.0;
+        boolean accelRun = defaults.forwardAccelerationLimit.getIn() > 10.0;
 
         while (opModeInInit()) {
             telemetry.addLine("Robot Initialized");
@@ -452,7 +452,7 @@ public class FollowerTuner extends LinearOpMode {
                                     new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(0, DistUnit.IN))), start.getHeading()),
                                     new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(90))),
                                     new Pose(start.getVec().plus(new Vector(Dist.of(0, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(180)))
-                            ).build();
+                            ).quickBuild();
 
                             follower.follow(testCurve);
                             accelMaxError = 0;
@@ -565,12 +565,12 @@ public class FollowerTuner extends LinearOpMode {
 
     private void updateFollowerConfig() {
         followerConstants.headingCoeffs = new PDSCoefficients(headingP, headingD, headingS, 0);
-        followerConstants.driveCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
+        followerConstants.translationalCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
         followerConstants.translationalCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
         followerConstants.translationalKV = velocityFF;
         followerConstants.headingTolerance = Angle.fromDeg(headingToleranceDeg);
         followerConstants.distanceTolerance = Dist.fromIn(distanceToleranceIn);
-        followerConstants.maxLateralAccel = maxLateralAccel;
+        followerConstants.forwardAccelerationLimit = Dist.fromIn(maxLateralAccel);
     }
 
     private final ApexConfig customConfig = new ApexConfig() {

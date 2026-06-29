@@ -56,6 +56,10 @@ public class MotionParameters {
         return this;
     }
 
+    public void setDistAlongCurve(double distAlongCurve) {
+        this.distAlongCurve = distAlongCurve;
+    }
+
     public double getTangentialVel() {
         return tangentialVel;
     }
@@ -70,6 +74,10 @@ public class MotionParameters {
 
     public double getAngularAccel() {
         return angularAccel;
+    }
+
+    public double getDistAlongCurve() {
+        return distAlongCurve;
     }
 
     public double getProgression() {
