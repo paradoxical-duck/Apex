@@ -25,7 +25,7 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
     }
 
     @Override
-    protected double calculateMaxTangentialVelocity(PathPoint point, PathPoint lastPoint,
+    protected double calculateMaxTangentialVelocity(PathPoint point,
                                                     Path path, double maxAngVel,
                                                     double maxAngAccel) {
         double s = point.getDistanceToEnd_in();
@@ -42,8 +42,8 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
         DirectionalKinematics dirK = limitCalculator.getKinematics(tangent, headingAtPoint);
         double maxPhysicalVel = dirK.maxVel;
 
-        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getIn(), maxAngVel);
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getRad(), maxAngVel);
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
 
         if (Math.abs(fPrime) > 1e-6) {
@@ -143,7 +143,7 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
                 finalTangent);
 
         double maxPhysicalDecel = limitCalculator.getKinematics(tangent, robotHeading).maxAccel;
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
 
         if (Math.abs(fPrime) > 1e-6) {
@@ -190,7 +190,7 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
         double accelVoltageCost = boostedKA + Math.abs(fPrime * config.angularKA);
 
         double dynamicAlpha = vRemaining / accelVoltageCost;
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
 
         if (Math.abs(fPrime) > 1e-6) {

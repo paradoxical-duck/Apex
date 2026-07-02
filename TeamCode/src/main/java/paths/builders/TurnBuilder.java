@@ -35,8 +35,8 @@ public class TurnBuilder {
     public TurnBuilder(Pose startPose) {
         this.startPose = startPose;
         this.config = new FollowerConstants();
-        this.angularVelLimitRad = config.angularVelocityLimit.getIn();
-        this.angularAccelLimitRad = config.angularAccelerationLimit.getIn();
+        this.angularVelLimitRad = config.angularVelocityLimit.getRad();
+        this.angularAccelLimitRad = config.angularAccelerationLimit.getRad();
     }
 
     /**
@@ -89,7 +89,7 @@ public class TurnBuilder {
      * @return The current TurnBuilder instance for method chaining.
      */
     public TurnBuilder setAngularVelocityLimit(Angle limit) {
-        if (limit.getRad() > config.angularVelocityLimit.getIn()) {
+        if (limit.getRad() > config.angularVelocityLimit.getRad()) {
             throw new IllegalStateException("The angular velocity limit must be <= the " +
                     "drivetrain's max angular velocity constraint!");
         }
@@ -104,7 +104,7 @@ public class TurnBuilder {
      * @return The current TurnBuilder instance for method chaining.
      */
     public TurnBuilder setAngularAccelerationLimit(Angle limit) {
-        if (limit.getRad() > config.angularAccelerationLimit.getIn()) {
+        if (limit.getRad() > config.angularAccelerationLimit.getRad()) {
             throw new IllegalStateException("The angular acceleration limit must be <= the " +
                     "drivetrain's max angular acceleration constraint!");
         }

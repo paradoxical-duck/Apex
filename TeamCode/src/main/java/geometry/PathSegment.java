@@ -240,8 +240,13 @@ public class PathSegment {
 
         double k1 = getSignedCurvature(t1);
         double k2 = getSignedCurvature(t2);
+        double ds = segment.getPosition(t2).minus(segment.getPosition(t1)).getMag().getIn();
 
-        return (k2 - k1) / (t2 - t1);
+        if (ds < 1e-6) {
+            return 0.0;
+        }
+
+        return (k2 - k1) / ds;
     }
 
     /**

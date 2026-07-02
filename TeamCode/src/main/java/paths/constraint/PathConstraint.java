@@ -1,23 +1,22 @@
 package paths.constraint;
 
-import geometry.Dist;
+/**
+ * A marker interface for all path-based kinematic constraints.
+ */
+public interface PathConstraint {
+    
+    /**
+     * @return The percentage along the path [0.0, 1.0] where this constraint becomes active.
+     */
+    double getS();
 
-public class PathConstraint {
-    public final double s;
-    public final double value_in;
+    /**
+     * Set's the s percentage along the path [0.0, 1.0]
+     */
+    void setS(double s);
 
-    public enum ConstraintType {
-        VELOCITY,
-        ACCELERATION,
-        ANGULAR_VELOCITY,
-        ANGULAR_ACCELERATION
-    }
-
-    public final ConstraintType constraintType;
-
-    public PathConstraint(double s, ConstraintType constraintType, Dist value) {
-        this.s = s;
-        this.constraintType = constraintType;
-        value_in = value.getIn();
-    }
+    /**
+     * @return The type of path constraint: VELOCITY, or ACCELERATION
+     */
+    ConstraintType getType();
 }

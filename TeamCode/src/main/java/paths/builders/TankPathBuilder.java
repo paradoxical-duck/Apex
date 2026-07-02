@@ -37,7 +37,7 @@ public class TankPathBuilder {
      *              . Endpoints cannot be ArcPoses.
      */
     public TankPathBuilder(Pose... poses) {
-        this.path = new Path(true);
+        this.path = new Path(Path.PathType.TANK);
         if (poses.length < 2) {
             throw new IllegalArgumentException("A B-Spline must be created with > 1 points!");
         }
@@ -61,18 +61,16 @@ public class TankPathBuilder {
     /**
      * Adds a kinematic constraint to the path at a specific distance percentage.
      *
-     * @param s              The distance percentage along the path in bounds [0, 1].
-     * @param constraintType The type of constraint to apply.
-     * @param value          The value of the constraint.
+     * @param constraint The {@link PathConstraint} to be added to the path
      * @return The current TankPathBuilder instance for method chaining.
      */
-    public TankPathBuilder addConstraint(double s, PathConstraint.ConstraintType constraintType,
-                                         Dist value) {
-        if (s >= 1.0 || s < 0.0) {
-            s = Math.min(Math.max(s, 0.0), 0.9);
-            path.addWarning("s must be within [0, 1] bounds! Normalized to " + s + " for safety.");
+    public TankPathBuilder addConstraint(PathConstraint constraint) {
+        if (constraint.getS() >= 1.0 || constraint.getS() < 0.0) {
+            constraint.setS(Math.min(Math.max(constraint.getS(), 0.0), 0.9));
+            path.addWarning("s must be within [0, 1) bounds! Normalized to " + constraint.getS() +
+                    " for safety.");
         }
-        path.addConstraint(new PathConstraint(s, constraintType, value));
+        path.addConstraint(constraint);
         return this;
     }
 

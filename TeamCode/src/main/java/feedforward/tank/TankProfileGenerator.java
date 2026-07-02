@@ -16,7 +16,7 @@ public class TankProfileGenerator extends BaseProfileGenerator {
     }
 
     @Override
-    protected double calculateMaxTangentialVelocity(PathPoint point, PathPoint lastPoint,
+    protected double calculateMaxTangentialVelocity(PathPoint point,
                                                     Path path, double maxAngVel,
                                                     double maxAngAccel) {
         double s = point.getDistanceToEnd_in();
@@ -32,8 +32,8 @@ public class TankProfileGenerator extends BaseProfileGenerator {
 
         double maxPhysicalVel = config.forwardVelocityLimit.getIn();
 
-        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getIn(), maxAngVel);
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getRad(), maxAngVel);
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
 
         if (Math.abs(fPrime) > 1e-6) {
@@ -120,7 +120,7 @@ public class TankProfileGenerator extends BaseProfileGenerator {
                 finalTangent);
 
         double maxPhysicalDecel = config.forwardAccelerationLimit.getIn();
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
 
         if (Math.abs(fPrime) > 1e-6) {
@@ -159,7 +159,7 @@ public class TankProfileGenerator extends BaseProfileGenerator {
         double accelVoltageCost = config.translationalKA + Math.abs(fPrime * config.angularKA);
 
         double dynamicAlpha = vRemaining / accelVoltageCost;
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
 
         if (Math.abs(fPrime) > 1e-6) {

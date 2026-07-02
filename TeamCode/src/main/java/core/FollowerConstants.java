@@ -39,8 +39,8 @@ public class FollowerConstants {
     public Dist forwardAccelerationLimit = Dist.fromIn(0);
     public Dist strafeVelocityLimit = Dist.fromIn(0);
     public Dist strafeAccelerationLimit = Dist.fromIn(0);
-    public Dist angularVelocityLimit = Dist.fromIn(0);
-    public Dist angularAccelerationLimit = Dist.fromIn(0);
+    public Angle angularVelocityLimit = Angle.fromDeg(0);
+    public Angle angularAccelerationLimit = Angle.fromDeg(0);
     public Angle headingTolerance = Angle.fromDeg(1.0);
     public Dist distanceTolerance = Dist.fromIn(0.5);
 
@@ -62,12 +62,12 @@ public class FollowerConstants {
 
                 String dtString = json.optString("drivetrainType", "MECANUM");
                 try {
-                    this.drivetrainType = DrivetrainType.valueOf(dtString.toUpperCase());
+                    drivetrainType = DrivetrainType.valueOf(dtString.toUpperCase());
                 } catch (IllegalArgumentException e) {
-                    this.drivetrainType = DrivetrainType.MECANUM;
+                    drivetrainType = DrivetrainType.MECANUM;
                 }
 
-                this.headingCoeffs = new PDSCoefficients(
+                headingCoeffs = new PDSCoefficients(
                         json.optDouble("headingP", 0),
                         json.optDouble("headingD", 0),
                         json.optDouble("headingS", 0), 0);
@@ -75,32 +75,71 @@ public class FollowerConstants {
                 double tP = json.optDouble("translationP", 0);
                 double tD = json.optDouble("translationD", 0);
                 double tS = json.optDouble("translationS", 0);
-                this.translationalCoeffs = new PDSCoefficients(tP, tD, tS, 0);
+                translationalCoeffs = new PDSCoefficients(tP, tD, tS, 0);
 
-                this.translationalKV = json.optDouble("translationKV", this.translationalKV);
-                this.translationalKA = json.optDouble("translationKA", this.translationalKA);
-                this.angularKV = json.optDouble("angularKV", this.angularKV);
-                this.angularKA = json.optDouble("angularKA", this.angularKA);
-                this.Kcentripetal = json.optDouble("KC", this.Kcentripetal);
-                this.headingTolerance = Angle.fromDeg(json.optDouble("headingToleranceDeg", 1.0));
-                this.distanceTolerance = Dist.fromIn(json.optDouble("distanceToleranceIn", 0.5));
+                translationalKV = json.optDouble("translationKV", translationalKV);
+                translationalKA = json.optDouble("translationKA", translationalKA);
+                angularKV = json.optDouble("angularKV", angularKV);
+                angularKA = json.optDouble("angularKA", angularKA);
+                Kcentripetal = json.optDouble("KC", Kcentripetal);
+                headingTolerance = Angle.fromDeg(json.optDouble("headingToleranceDeg", 1.0));
+                distanceTolerance = Dist.fromIn(json.optDouble("distanceToleranceIn", 0.5));
 
-                this.forwardVelocityLimit = Dist.fromIn(json.optDouble(
+                forwardVelocityLimit = Dist.fromIn(json.optDouble(
                         "forwardVelocityLimitInPerSec", 0));
-                this.forwardAccelerationLimit = Dist.fromIn(json.optDouble(
+                forwardAccelerationLimit = Dist.fromIn(json.optDouble(
                         "forwardVelocityLimitInPerSec2", 0));
-                this.strafeVelocityLimit = Dist.fromIn(json.optDouble(
+                strafeVelocityLimit = Dist.fromIn(json.optDouble(
                         "strafeVelocityLimitInPerSec", 0));
-                this.strafeAccelerationLimit = Dist.fromIn(json.optDouble(
+                strafeAccelerationLimit = Dist.fromIn(json.optDouble(
                         "strafeAccelerationLimitInPerSec2", 0));
-                this.angularVelocityLimit = Dist.fromIn(json.optDouble(
+                angularVelocityLimit = Angle.fromDeg(json.optDouble(
                         "angularVelocityLimitRadPerSec", 0));
-                this.angularAccelerationLimit = Dist.fromIn(json.optDouble(
+                angularAccelerationLimit = Angle.fromDeg(json.optDouble(
                         "angularAccelerationLimitRadPerSec2", 0));
             } catch (Exception ignored) {
                 // defaults to 0 values everywhere
             }
         }
+    }
+
+    public FollowerConstants inject(
+            DrivetrainType drivetrainType,
+            PDSCoefficients headingCoeffs,
+            PDSCoefficients translationalCoeffs,
+            double velocityFeedbackGain,
+            double translationalKV,
+            double translationalKA,
+            double angularKV,
+            double angularKA,
+            double Kcentripetal,
+            Dist forwardVelocityLimit,
+            Dist forwardAccelerationLimit,
+            Dist strafeVelocityLimit,
+            Dist strafeAccelerationLimit,
+            Angle angularVelocityLimit,
+            Angle angularAccelerationLimit,
+            Angle headingTolerance,
+            Dist distanceTolerance
+    ) {
+        this.drivetrainType = drivetrainType;
+        this.headingCoeffs = headingCoeffs;
+        this.translationalCoeffs = translationalCoeffs;
+        this.velocityFeedbackGain = velocityFeedbackGain;
+        this.translationalKV = translationalKV;
+        this.translationalKA = translationalKA;
+        this.angularKV = angularKV;
+        this.angularKA = angularKA;
+        this.Kcentripetal = Kcentripetal;
+        this.forwardVelocityLimit = forwardVelocityLimit;
+        this.forwardAccelerationLimit = forwardAccelerationLimit;
+        this.strafeVelocityLimit = strafeVelocityLimit;
+        this.strafeAccelerationLimit = strafeAccelerationLimit;
+        this.angularVelocityLimit = angularVelocityLimit;
+        this.angularAccelerationLimit = angularAccelerationLimit;
+        this.headingTolerance = headingTolerance;
+        this.distanceTolerance = distanceTolerance;
+        return this;
     }
 
     public FollowerConstants getConstants() {

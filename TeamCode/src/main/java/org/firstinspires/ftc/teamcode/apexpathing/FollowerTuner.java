@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.apexpathing;
 
-import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -32,7 +31,7 @@ import util.DistUnit;
  *
  * @author Sohum Arora 22985 Paraducks
  */
-@Configurable
+
 @TeleOp(name = "Follower Tuner", group = "Apex Pathing Tuning")
 public class FollowerTuner extends LinearOpMode {
 

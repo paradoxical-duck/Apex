@@ -2,12 +2,18 @@ package feedforward.holonomic.swerve;
 
 import core.FollowerConstants;
 import feedforward.BaseProfileGenerator;
-import geometry.Angle;
 import geometry.PathPoint;
 import geometry.Vector;
 import paths.movements.Path;
 
+/**
+ * Generates time-optimal motion profiles for Swerve drivetrains by evaluating
+ * continuous voltage saturation constraints algebraically.
+ */
 public class SwerveProfileGenerator extends BaseProfileGenerator {
+    private static final double EPSILON = 1e-6;
+    private static final int VELOCITY_SEARCH_ITERATIONS = 10;
+
     private final FollowerConstants config;
 
     public SwerveProfileGenerator(FollowerConstants config, Path path) {
@@ -15,45 +21,37 @@ public class SwerveProfileGenerator extends BaseProfileGenerator {
         this.config = config;
     }
 
+    // region Base Pass (Velocity Ceiling)
+
     @Override
-    protected double calculateMaxTangentialVelocity(PathPoint point, PathPoint lastPoint,
-                                                    Path path, double maxAngVel,
-                                                    double maxAngAccel) {
+    protected double calculateMaxTangentialVelocity(PathPoint point, Path path,
+                                                    double maxAngVel, double maxAngAccel) {
         double s = point.getDistanceToEnd_in();
-        Vector tangent = point.getFirstDerivative();
         double kappa = point.getSignedCurvature();
         double dKappa = point.getCurvatureDerivative();
         Vector finalTangent = path.getParametricPath().getFirstDerivative(1.0);
 
-        Angle headingAtPoint = path.getInterpolator().getHeadingTarg(s, tangent, finalTangent);
         double fPrime = path.getInterpolator().getHeadingFirstDerivative(s, kappa, finalTangent);
         double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa,
                 finalTangent);
 
         double maxPhysicalVel = config.forwardVelocityLimit.getIn();
-
-        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getIn(), maxAngVel);
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
+        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getRad(), maxAngVel);
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
                 maxAngAccel);
-
-        if (Math.abs(fPrime) > 1e-6) {
-            double maxVelFromOmega = effectiveAngVelLimit / Math.abs(fPrime);
-            maxPhysicalVel = Math.min(maxPhysicalVel, maxVelFromOmega);
-        }
-
-        if (Math.abs(fDoublePrime) > 1e-6) {
-            double maxVelFromAlpha = Math.sqrt(effectiveAngAccelLimit / Math.abs(fDoublePrime));
-            maxPhysicalVel = Math.min(maxPhysicalVel, maxVelFromAlpha);
-        }
 
         double min_v = 0.0;
         double max_v = maxPhysicalVel;
-        int iterations = 5;
 
-        for (int i = 0; i < iterations; i++) {
+        for (int i = 0; i < VELOCITY_SEARCH_ITERATIONS; i++) {
             double mid_v = (min_v + max_v) / 2.0;
+            double omega = fPrime * mid_v;
+            double alpha = fDoublePrime * mid_v * mid_v;
+            boolean violatesAngularLimit =
+                    Math.abs(omega) > effectiveAngVelLimit + EPSILON ||
+                            Math.abs(alpha) > effectiveAngAccelLimit + EPSILON;
 
-            if (evaluatePower(mid_v, kappa, fPrime, fDoublePrime) > 1.0) {
+            if (violatesAngularLimit || calculatePowerUtilization(mid_v, 0.0, path, point) > 1.0) {
                 max_v = mid_v;
             } else {
                 min_v = mid_v;
@@ -63,151 +61,115 @@ public class SwerveProfileGenerator extends BaseProfileGenerator {
         return Math.min(min_v, maxPhysicalVel);
     }
 
-    private double evaluatePower(double v, double kappa, double fPrime, double fDoublePrime) {
-        double transPowerRaw = (v * config.translationalKV) + config.translationalCoeffs.kS;
-        double latPowerRaw = Math.abs((v * v * kappa) * config.Kcentripetal);
+    // endregion
 
-        double totalTranslationalPower = Math.hypot(transPowerRaw, latPowerRaw);
+    // region Integration Passes (Acceleration / Deceleration)
 
-        double omega = fPrime * v;
-        double alpha = fDoublePrime * (v * v);
-        double headingKs = (Math.abs(omega) > 1e-6) ?
-                (Math.signum(omega) * config.headingCoeffs.kS) : 0.0;
+    @Override
+    protected double calculateDynamicMaxAccel(double currentVel, PathPoint point,
+                                              Path path, double maxAngAccel) {
+        return calculateAngularLimitedTangentialAccel(currentVel, point, path, maxAngAccel, true);
+    }
 
-        double rotPower =
-                Math.abs((omega * config.angularKV) + (alpha * config.angularKA) + headingKs);
+    @Override
+    protected double getMaxTangentialAccel(double currentVel, PathPoint point,
+                                           Path path, double maxAngAccel) {
+        return calculateAngularLimitedTangentialAccel(currentVel, point, path, maxAngAccel, false);
+    }
 
-        return totalTranslationalPower + rotPower;
+    // endregion
+
+    // region Utility and Evaluation
+
+    /**
+     * Calculates the theoretical total motor power required to execute a given kinematic state.
+     */
+    protected double calculatePowerUtilization(double vel, double accel, Path path, PathPoint point) {
+        EvaluationResult result = new EvaluationResult();
+        evaluateState(path, point, vel, accel, result);
+        return result.totalPower;
     }
 
     @Override
     protected void evaluatePoint(Path path, PathPoint prev, PathPoint current, double v_prev,
                                  double v, double a_t, EvaluationResult outResult) {
-        double s = current.getDistanceToEnd_in();
-        double kappa = current.getSignedCurvature();
-        double dKappa = current.getCurvatureDerivative();
+        evaluateState(path, current, v, a_t, outResult);
+    }
+
+    private void evaluateState(Path path, PathPoint point, double vel, double accel,
+                               EvaluationResult outResult) {
+        double s = point.getDistanceToEnd_in();
+        double kappa = point.getSignedCurvature();
+        double dKappa = point.getCurvatureDerivative();
         Vector finalTangent = path.getParametricPath().getFirstDerivative(1.0);
 
         double fPrime = path.getInterpolator().getHeadingFirstDerivative(s, kappa, finalTangent);
-        double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa,
-                finalTangent);
+        double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa, finalTangent);
 
-        double omega = fPrime * v;
-        double alpha = (fDoublePrime * (v * v)) + (fPrime * a_t);
+        double tanPow = (vel * config.translationalKV)
+                + (accel * config.translationalKA)
+                + signedStatic(vel, accel, config.translationalCoeffs.kS);
 
-        double pForward =
-                (v * config.translationalKV) + (a_t * config.translationalKA) + (Math.signum(v) * config.translationalCoeffs.kS);
-        double pLateral = (v * v * kappa) * config.Kcentripetal;
+        double normPow = (vel * vel * kappa) * config.Kcentripetal;
 
-        double headingKs = (Math.abs(omega) > 1e-6) ?
-                (Math.signum(omega) * config.headingCoeffs.kS) : 0.0;
-        double pHeading = (omega * config.angularKV) + (alpha * config.angularKA) + headingKs;
+        double omega = fPrime * vel;
+        double alpha = (fDoublePrime * (vel * vel)) + (fPrime * accel);
 
-        outResult.pForward = Math.abs(pForward);
-        outResult.pLateral = Math.abs(pLateral);
-        outResult.pHeading = Math.abs(pHeading);
+        double headingKs = signedStatic(omega, alpha, config.headingCoeffs.kS);
 
-        outResult.totalPower =
-                Math.hypot(outResult.pForward, outResult.pLateral) + outResult.pHeading;
+        double heading = (omega * config.angularKV)
+                + (alpha * config.angularKA)
+                + headingKs;
+
+        outResult.pForward = Math.abs(tanPow);
+        outResult.pLateral = Math.abs(normPow);
+        outResult.pHeading = Math.abs(heading);
+        outResult.totalPower = Math.hypot(tanPow, normPow) + Math.abs(heading);
         outResult.maxUtilization = outResult.totalPower;
     }
 
-    @Override
-    protected double getMaxTangentialAccel(double currentVel, PathPoint point, Path path,
-                                           double maxAngAccel) {
+    private double calculateAngularLimitedTangentialAccel(double currentVel, PathPoint point,
+                                                          Path path, double maxAngAccel,
+                                                          boolean positiveAccel) {
+        double maxPhysicalAccel = config.forwardAccelerationLimit.getIn();
+        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
+                maxAngAccel);
+        if (effectiveAngAccelLimit < EPSILON) {
+            return 0.0;
+        }
+
         double s = point.getDistanceToEnd_in();
         double kappa = point.getSignedCurvature();
         double dKappa = point.getCurvatureDerivative();
         Vector finalTangent = path.getParametricPath().getFirstDerivative(1.0);
 
         double fPrime = path.getInterpolator().getHeadingFirstDerivative(s, kappa, finalTangent);
-        double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa,
-                finalTangent);
+        double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa, finalTangent);
+        double alphaBase = fDoublePrime * currentVel * currentVel;
 
-        double maxPhysicalDecel = config.forwardAccelerationLimit.getIn();
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
-                maxAngAccel);
-
-        if (Math.abs(fPrime) > 1e-6) {
-            double rotationalTorqueBase =
-                    Math.signum(fPrime) * fDoublePrime * (currentVel * currentVel);
-            double maxDecelFromAlpha =
-                    (effectiveAngAccelLimit + rotationalTorqueBase) / Math.abs(fPrime);
-
-            maxPhysicalDecel = Math.min(maxPhysicalDecel, Math.max(0.0, maxDecelFromAlpha));
+        if (Math.abs(fPrime) < EPSILON) {
+            return Math.abs(alphaBase) <= effectiveAngAccelLimit + EPSILON
+                    ? maxPhysicalAccel : 0.0;
         }
 
-        return maxPhysicalDecel;
+        double boundA = (-effectiveAngAccelLimit - alphaBase) / fPrime;
+        double boundB = (effectiveAngAccelLimit - alphaBase) / fPrime;
+        double minAccel = Math.min(boundA, boundB);
+        double maxAccel = Math.max(boundA, boundB);
+
+        double angularLimitedAccel = positiveAccel ? maxAccel : -minAccel;
+        return Math.min(maxPhysicalAccel, Math.max(0.0, angularLimitedAccel));
     }
 
-    @Override
-    protected double calculateDynamicMaxAccel(double currentVel, PathPoint point, Path path,
-                                              double maxAngAccel) {
-        double s = point.getDistanceToEnd_in();
-        double kappa = point.getSignedCurvature();
-        double dKappa = point.getCurvatureDerivative();
-        Vector finalTangent = path.getParametricPath().getFirstDerivative(1.0);
-
-        double fPrime = path.getInterpolator().getHeadingFirstDerivative(s, kappa, finalTangent);
-        double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa,
-                finalTangent);
-
-        double vFwdConsumed = (currentVel * config.translationalKV) + config.translationalCoeffs.kS;
-        double vLatConsumed = Math.abs((currentVel * currentVel * kappa) * config.Kcentripetal);
-
-        double omega = fPrime * currentVel;
-        double alphaBase = fDoublePrime * (currentVel * currentVel);
-        double headingKs = (Math.abs(omega) > 1e-6) ? config.headingCoeffs.kS : 0.0;
-        double rotConsumedBase =
-                Math.abs(omega * config.angularKV) + Math.abs(alphaBase * config.angularKA) + headingKs;
-
-        double maxAvailableTranslation = Math.max(0.0, 1.0 - rotConsumedBase);
-
-        // Solve for dynamicAlpha using the Swerve Quadratic Power Equation
-        double c1 = config.translationalKA;
-        double c2 = Math.abs(fPrime * config.angularKA);
-
-        double A = (c1 * c1) - (c2 * c2);
-        double B = 2.0 * ((vFwdConsumed * c1) + (maxAvailableTranslation * c2));
-        double C =
-                (vFwdConsumed * vFwdConsumed) + (vLatConsumed * vLatConsumed) - (maxAvailableTranslation * maxAvailableTranslation);
-
-        double dynamicAlpha = 0.0;
-
-        // If C > 0, the current velocity already exceeds the voltage budget at zero acceleration
-        if (C <= 0) {
-            if (Math.abs(A) < 1e-6) {
-                // Linear collapse if c1 exactly equals c2
-                dynamicAlpha = -C / B;
-            } else {
-                double discriminant = (B * B) - (4.0 * A * C);
-                if (discriminant >= 0) {
-                    double root1 = (-B + Math.sqrt(discriminant)) / (2.0 * A);
-                    double root2 = (-B - Math.sqrt(discriminant)) / (2.0 * A);
-
-                    // Validate roots to filter out extraneous solutions created by squaring
-                    if (root1 > 0 && (maxAvailableTranslation - (c2 * root1)) >= 0) {
-                        dynamicAlpha = Math.max(dynamicAlpha, root1);
-                    }
-                    if (root2 > 0 && (maxAvailableTranslation - (c2 * root2)) >= 0) {
-                        dynamicAlpha = Math.max(dynamicAlpha, root2);
-                    }
-                }
-            }
+    private double signedStatic(double velocity, double accel, double kS) {
+        if (Math.abs(velocity) > EPSILON) {
+            return Math.signum(velocity) * kS;
         }
-
-        // Cap forward acceleration to avoid exceeding structural angular limits
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getIn(),
-                maxAngAccel);
-
-        if (Math.abs(fPrime) > 1e-6) {
-            double rotationalTorqueBase =
-                    Math.signum(fPrime) * fDoublePrime * (currentVel * currentVel);
-            double maxAlpha_at = (effectiveAngAccelLimit - rotationalTorqueBase) / Math.abs(fPrime);
-
-            dynamicAlpha = Math.min(dynamicAlpha, Math.max(0.0, maxAlpha_at));
+        if (Math.abs(accel) > EPSILON) {
+            return Math.signum(accel) * kS;
         }
-
-        return Math.min(config.forwardAccelerationLimit.getIn(), dynamicAlpha);
+        return 0.0;
     }
+
+    // endregion
 }

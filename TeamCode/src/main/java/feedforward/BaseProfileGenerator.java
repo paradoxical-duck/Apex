@@ -1,22 +1,25 @@
 package feedforward;
 
-import com.qualcomm.robotcore.util.ElapsedTime;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import core.FollowerConstants;
 import geometry.PathPoint;
 import geometry.Vector;
+import paths.constraint.AngularConstraint;
+import paths.constraint.ConstraintType;
 import paths.constraint.PathConstraint;
+import paths.constraint.TranslationalConstraint;
 import paths.movements.FollowerMovement;
 import paths.movements.Path;
 
 public abstract class BaseProfileGenerator {
+    private static final double UTILIZATION_LIMIT = 1.0;
+    private static final double UTILIZATION_TOLERANCE = 1e-3;
+    private static final double EPSILON = 1e-6;
+    private static final int PIN_SEARCH_ITERATIONS = 24;
 
     protected FollowerMovement path;
-    private final ElapsedTime timer = new ElapsedTime();
     private DebugReport lastReport;
 
     public DebugReport getLastDebugReport() {
@@ -24,8 +27,8 @@ public abstract class BaseProfileGenerator {
     }
 
     // region Abstract Methods
-    protected abstract double calculateMaxTangentialVelocity(PathPoint point, PathPoint lastPoint
-            , Path path, double maxAngVel, double maxAngAccel);
+    protected abstract double calculateMaxTangentialVelocity(PathPoint point, Path path,
+                                                             double maxAngVel, double maxAngAccel);
 
     protected abstract void evaluatePoint(
             Path path, PathPoint prev, PathPoint current,
@@ -40,6 +43,18 @@ public abstract class BaseProfileGenerator {
                                                        Path path, double maxAngAccel);
 
     // region Master Loop
+
+    public MotionParameters[] generateInitialProfile() {
+        Path path = (Path) this.path;
+        PathPoint[] points = path.getGeneratedPoints();
+
+        MotionParameters[] outputParams = generateBasePass(points, path);
+        runBackwardPass(outputParams, points, path);
+        runForwardPass(outputParams, points, path);
+
+        populateKinematicsAndPower(outputParams, points, path);
+        return outputParams;
+    }
 
     public MotionParameters[] generate() {
         if (!(path instanceof Path)) {
@@ -58,83 +73,98 @@ public abstract class BaseProfileGenerator {
         runBackwardPass(outputParams, points, path);
         runForwardPass(outputParams, points, path);
 
-        int generationTime_ms = 750;
-        int iter = 0;
-        timer.reset();
-        EvaluationResult currentEval = new EvaluationResult();
-        EvaluationResult worstEvalState = new EvaluationResult();
+        ProfileEvaluation profileEval = populateKinematicsAndPower(outputParams, points, path);
+        int maxIterations = Math.max(25, points.length * 2);
+        int iterations = 0;
 
-        while (timer.time(TimeUnit.MILLISECONDS) < generationTime_ms) {
-            lastReport.iterationsRun = iter + 1;
+        while (profileEval.maxUtilization > UTILIZATION_LIMIT + UTILIZATION_TOLERANCE
+                && iterations < maxIterations) {
+            int checkIndex = Math.max(1, profileEval.worstIndex);
+            int pinIndex = choosePinIndex(outputParams, checkIndex);
 
-            double[] utilizations = new double[points.length];
-            double globalWorstUtil = 0.0;
-            int globalWorstIndex = -1;
+            double previousVelocity = outputParams[pinIndex].getTangentialVel();
+            double pinnedVelocity = findPinnedVelocity(
+                    outputParams, points, path, pinIndex, checkIndex, previousVelocity
+            );
 
-            for (int i = 1; i < points.length; i++) {
-                double ds =
-                        Math.abs(points[i].getDistanceToEnd_in() - points[i - 1].getDistanceToEnd_in());
-                if (ds < 1e-6) {
-                    utilizations[i] = 0.0;
-                    continue;
-                }
-
-                double v = outputParams[i].getTangentialVel();
-                double v_prev = outputParams[i - 1].getTangentialVel();
-                double a_t = ((v * v) - (v_prev * v_prev)) / (2.0 * ds);
-
-                evaluatePoint(path, points[i - 1], points[i], v_prev, v, a_t, currentEval);
-                utilizations[i] = currentEval.maxUtilization;
-
-                if (currentEval.maxUtilization > globalWorstUtil) {
-                    globalWorstUtil = currentEval.maxUtilization;
-                    globalWorstIndex = i;
-                    worstEvalState.copyFrom(currentEval);
-                }
+            if (previousVelocity - pinnedVelocity < EPSILON) {
+                pinnedVelocity = previousVelocity * 0.98;
             }
 
-            lastReport.finalMaxUtilization = globalWorstUtil;
-
-            if (globalWorstUtil <= 1.0) {
-                lastReport.converged = true;
-                break;
-            }
-
-            boolean pinnedAny = false;
-            for (int i = 1; i < points.length; i++) {
-                if (utilizations[i] > 1.0) {
-                    boolean isLocalMax = i <= 1 || !(utilizations[i] < utilizations[i - 1]);
-                    if (i < points.length - 1 && utilizations[i] <= utilizations[i + 1])
-                        isLocalMax = false;
-
-                    if (isLocalMax) {
-                        outputParams[i].setTangentialVel(outputParams[i].getTangentialVel() * 0.90);
-                        pinnedAny = true;
-                    }
-                }
-            }
-
-            if (!pinnedAny && globalWorstIndex != -1) {
-                outputParams[globalWorstIndex].setTangentialVel(outputParams[globalWorstIndex].getTangentialVel() * 0.90);
-            }
+            outputParams[pinIndex].setTangentialVel(Math.max(0.0, pinnedVelocity));
 
             IterationLog log = new IterationLog();
-            log.iteration = iter;
-            log.pinnedIndex = globalWorstIndex;
-            log.maxUtilization = worstEvalState.maxUtilization;
-            log.totalPower = worstEvalState.totalPower;
-            log.pForward = worstEvalState.pForward;
-            log.pLateral = worstEvalState.pLateral;
-            log.pHeading = worstEvalState.pHeading;
+            log.iteration = iterations + 1;
+            log.pinnedIndex = pinIndex;
+            log.previousVelocity = previousVelocity;
+            log.newVelocity = outputParams[pinIndex].getTangentialVel();
+            log.maxUtilization = profileEval.maxUtilization;
+            log.totalPower = profileEval.totalPower;
+            log.pForward = profileEval.pForward;
+            log.pLateral = profileEval.pLateral;
+            log.pHeading = profileEval.pHeading;
             lastReport.logs.add(log);
 
             runBackwardPass(outputParams, points, path);
             runForwardPass(outputParams, points, path);
-
-            iter++;
+            profileEval = populateKinematicsAndPower(outputParams, points, path);
+            iterations++;
         }
 
+        lastReport.iterationsRun = Math.max(1, iterations + 1);
+        lastReport.finalMaxUtilization = profileEval.maxUtilization;
+        lastReport.converged =
+                profileEval.maxUtilization <= UTILIZATION_LIMIT + UTILIZATION_TOLERANCE;
+
         return outputParams;
+    }
+
+    /**
+     * Calculates and populates the remaining kinematic variables (acceleration, angular velocity, power)
+     * based on the final velocity sweep.
+     */
+    private ProfileEvaluation populateKinematicsAndPower(MotionParameters[] lut, PathPoint[] points,
+                                                         Path path) {
+        EvaluationResult currentEval = new EvaluationResult();
+        ProfileEvaluation profileEval = new ProfileEvaluation();
+        lut[0].setTangentialAccel(0.0);
+        lut[0].setAngularVel(0.0);
+        lut[0].setAngularAccel(0.0);
+
+        for (int i = 1; i < points.length; i++) {
+            double ds = Math.abs(points[i].getDistanceToEnd_in() - points[i - 1].getDistanceToEnd_in());
+            double v = lut[i].getTangentialVel();
+            double v_prev = lut[i - 1].getTangentialVel();
+            double a_t = (ds < 1e-6) ? 0.0 : ((v * v) - (v_prev * v_prev)) / (2.0 * ds);
+
+            lut[i].setTangentialAccel(a_t);
+
+            double s = points[i].getDistanceToEnd_in();
+            double kappa = points[i].getSignedCurvature();
+            double dKappa = points[i].getCurvatureDerivative();
+            Vector finalTangent = path.getParametricPath().getFirstDerivative(1.0);
+
+            double fPrime = path.getInterpolator().getHeadingFirstDerivative(s, kappa, finalTangent);
+            double fDoublePrime = path.getInterpolator().getHeadingSecondDerivative(s, dKappa, finalTangent);
+
+            lut[i].setAngularVel(fPrime * v);
+            lut[i].setAngularAccel((fDoublePrime * (v * v)) + (fPrime * a_t));
+
+            evaluatePoint(path, points[i - 1], points[i], v_prev, v, a_t, currentEval);
+            lut[i].setMotorPower(currentEval.totalPower);
+
+            if (currentEval.maxUtilization > profileEval.maxUtilization) {
+                profileEval.worstIndex = i;
+                profileEval.maxUtilization = currentEval.maxUtilization;
+                profileEval.totalPower = currentEval.totalPower;
+                profileEval.pForward = currentEval.pForward;
+                profileEval.pLateral = currentEval.pLateral;
+                profileEval.pHeading = currentEval.pHeading;
+            }
+        }
+
+        lut[0].setMotorPower(lut.length > 1 ? lut[1].getMotorPower() : 0.0);
+        return profileEval;
     }
 
     public FeedforwardLut generateQuick(FollowerConstants config) {
@@ -179,7 +209,7 @@ public abstract class BaseProfileGenerator {
             double v = Math.min(lut[i].getTangentialVel(), maxReachableVel);
             lut[i].setTangentialVel(v);
 
-            double a_t = ((v * v) - (prevVel * prevVel)) / (2.0 * ds);
+            double a_t = (ds < 1e-6) ? 0.0 : ((v * v) - (prevVel * prevVel)) / (2.0 * ds);
             lut[i].setTangentialAccel(a_t);
 
             double s = points[i].getDistanceToEnd_in();
@@ -203,7 +233,7 @@ public abstract class BaseProfileGenerator {
 
     private MotionParameters[] generateBasePass(PathPoint[] points, Path path) {
         MotionParameters[] lut = new MotionParameters[points.length];
-        double pathLength_in = path.getParametricPath().getLengthIn();
+        double pathLength_in = Math.max(path.getParametricPath().getLengthIn(), EPSILON);
         PathConstraint[] constraints = path.getConstraints();
 
         for (int i = 0; i < points.length; i++) {
@@ -211,38 +241,34 @@ public abstract class BaseProfileGenerator {
             double currentMaxVel = Double.MAX_VALUE;
             double currentMaxAngVel = Double.MAX_VALUE;
             double currentMaxAngAccel = Double.MAX_VALUE;
-
             for (PathConstraint constraint : constraints) {
-                if (constraint.s <= pctCompleted) {
-                    if (constraint.constraintType == PathConstraint.ConstraintType.VELOCITY) {
-                        currentMaxVel = constraint.value_in;
-                    } else if (constraint.constraintType == PathConstraint.ConstraintType.ANGULAR_VELOCITY) {
-                        currentMaxAngVel = constraint.value_in;
-                    } else if (constraint.constraintType == PathConstraint.ConstraintType.ANGULAR_ACCELERATION) {
-                        currentMaxAngAccel = constraint.value_in;
+                if (constraint.getS() <= pctCompleted) {
+                    if (constraint instanceof TranslationalConstraint && constraint.getType() == ConstraintType.VELOCITY)  {
+                        currentMaxVel = ((TranslationalConstraint) constraint).getValueIn();
+                    } else if (constraint instanceof AngularConstraint && constraint.getType() == ConstraintType.VELOCITY) {
+                        currentMaxAngVel = ((AngularConstraint) constraint).getValueRad();
+                    } else if (constraint instanceof AngularConstraint && constraint.getType() == ConstraintType.ACCELERATION) {
+                        currentMaxAngAccel = ((AngularConstraint) constraint).getValueRad();
                     }
                 }
             }
 
-            double maxVel = calculateMaxTangentialVelocity(points[i], i == 0 ? points[0] :
-                    points[i - 1], path, currentMaxAngVel, currentMaxAngAccel);
+            double maxVel = calculateMaxTangentialVelocity(points[i], path, currentMaxAngVel, currentMaxAngAccel);
             if (currentMaxVel != Double.MAX_VALUE && currentMaxVel > 0.0) {
                 maxVel = Math.min(maxVel, currentMaxVel);
             }
 
-            lut[i] = new MotionParameters();
-            lut[i].setTangentialVel(maxVel);
+            lut[i] = new MotionParameters().setTangentialVel(maxVel);
         }
         return lut;
     }
 
     private void runBackwardPass(MotionParameters[] lut, PathPoint[] points, Path path) {
-        // If boosted, relax the boundary condition so the path ends at cruising speed
         if (!path.isAccelBoosted()) {
             lut[points.length - 1].setTangentialVel(0.0);
         }
 
-        double pathLength_in = path.getParametricPath().getLengthIn();
+        double pathLength_in = Math.max(path.getParametricPath().getLengthIn(), EPSILON);
         PathConstraint[] constraints = path.getConstraints();
 
         for (int i = points.length - 2; i >= 0; i--) {
@@ -250,27 +276,37 @@ public abstract class BaseProfileGenerator {
                     Math.abs(points[i + 1].getDistanceToEnd_in() - points[i].getDistanceToEnd_in());
             double nextVel = lut[i + 1].getTangentialVel();
 
-            double pctCompleted = 1.0 - (points[i].getDistanceToEnd_in() / pathLength_in);
+            double pctCompleted = 1.0 - (points[i + 1].getDistanceToEnd_in() / pathLength_in);
             double currentMaxAccel = Double.MAX_VALUE;
             double currentMaxAngAccel = Double.MAX_VALUE;
 
             for (PathConstraint constraint : constraints) {
-                if (constraint.s <= pctCompleted) {
-                    if (constraint.constraintType == PathConstraint.ConstraintType.ACCELERATION) {
-                        currentMaxAccel = constraint.value_in;
-                    } else if (constraint.constraintType == PathConstraint.ConstraintType.ANGULAR_ACCELERATION) {
-                        currentMaxAngAccel = constraint.value_in;
+                if (constraint.getS() <= pctCompleted) {
+                    if (constraint instanceof TranslationalConstraint &&
+                            constraint.getType() == ConstraintType.ACCELERATION) {
+                        currentMaxAccel = ((TranslationalConstraint) constraint).getValueIn();
+                    } else if (constraint instanceof AngularConstraint &&
+                            constraint.getType() == ConstraintType.ACCELERATION) {
+                        currentMaxAngAccel = ((AngularConstraint) constraint).getValueRad();
                     }
                 }
             }
 
-            double maxAccel = getMaxTangentialAccel(nextVel, points[i], path, currentMaxAngAccel);
+            double maxAccel = getMaxTangentialAccel(nextVel, points[i + 1], path,
+                    currentMaxAngAccel);
             if (currentMaxAccel != Double.MAX_VALUE && currentMaxAccel > 0.0) {
                 maxAccel = Math.min(maxAccel, currentMaxAccel);
             }
+            maxAccel = sanitizeNonNegative(maxAccel);
 
-            double maxReachableVel = Math.sqrt((nextVel * nextVel) + (2.0 * maxAccel * ds));
-            lut[i].setTangentialVel(Math.min(lut[i].getTangentialVel(), maxReachableVel));
+            double maxReachableVel = safeReachableVelocity(nextVel, maxAccel, ds);
+            double cappedVel = Math.min(lut[i].getTangentialVel(), maxReachableVel);
+            if (ds > EPSILON && cappedVel > nextVel + EPSILON) {
+                cappedVel = findMaxPreviousVelocity(
+                        path, points[i], points[i + 1], nextVel, cappedVel, maxAccel, ds
+                );
+            }
+            lut[i].setTangentialVel(cappedVel);
         }
     }
 
@@ -281,7 +317,7 @@ public abstract class BaseProfileGenerator {
             lut[0].setTangentialVel(0.0);
         }
 
-        double pathLength_in = path.getParametricPath().getLengthIn();
+        double pathLength_in = Math.max(path.getParametricPath().getLengthIn(), EPSILON);
         PathConstraint[] constraints = path.getConstraints();
 
         for (int i = 1; i < points.length; i++) {
@@ -294,11 +330,11 @@ public abstract class BaseProfileGenerator {
             double currentMaxAngAccel = Double.MAX_VALUE;
 
             for (PathConstraint constraint : constraints) {
-                if (constraint.s <= pctCompleted) {
-                    if (constraint.constraintType == PathConstraint.ConstraintType.ACCELERATION) {
-                        currentMaxAccel = constraint.value_in;
-                    } else if (constraint.constraintType == PathConstraint.ConstraintType.ANGULAR_ACCELERATION) {
-                        currentMaxAngAccel = constraint.value_in;
+                if (constraint.getS() <= pctCompleted) {
+                    if (constraint instanceof TranslationalConstraint && constraint.getType() == ConstraintType.ACCELERATION) {
+                        currentMaxAccel = ((TranslationalConstraint) constraint).getValueIn();
+                    } else if (constraint instanceof AngularConstraint && constraint.getType() == ConstraintType.ACCELERATION) {
+                        currentMaxAngAccel = ((AngularConstraint) constraint).getValueRad();
                     }
                 }
             }
@@ -308,10 +344,195 @@ public abstract class BaseProfileGenerator {
             if (currentMaxAccel != Double.MAX_VALUE && currentMaxAccel > 0.0) {
                 dynamicAccel = Math.min(dynamicAccel, currentMaxAccel);
             }
+            dynamicAccel = sanitizeNonNegative(dynamicAccel);
 
-            double maxReachableVel = Math.sqrt((prevVel * prevVel) + (2.0 * dynamicAccel * ds));
-            lut[i].setTangentialVel(Math.min(lut[i].getTangentialVel(), maxReachableVel));
+            double maxReachableVel = safeReachableVelocity(prevVel, dynamicAccel, ds);
+            double cappedVel = Math.min(lut[i].getTangentialVel(), maxReachableVel);
+            if (ds > EPSILON && cappedVel > prevVel + EPSILON) {
+                cappedVel = findMaxNextVelocity(
+                        path, points[i - 1], points[i], prevVel, cappedVel, dynamicAccel, ds
+                );
+            }
+            lut[i].setTangentialVel(cappedVel);
         }
+    }
+
+    private int choosePinIndex(MotionParameters[] lut, int worstIndex) {
+        int preferredIndex = worstIndex;
+        if (worstIndex > 0 && lut[worstIndex].getTangentialAccel() < -EPSILON) {
+            preferredIndex = worstIndex - 1;
+        } else if (lut[worstIndex].getTangentialVel() <= EPSILON && worstIndex > 0) {
+            preferredIndex = worstIndex - 1;
+        }
+
+        if (lut[preferredIndex].getTangentialVel() > EPSILON) {
+            return preferredIndex;
+        }
+
+        for (int i = worstIndex - 1; i >= 0; i--) {
+            if (lut[i].getTangentialVel() > EPSILON) {
+                return i;
+            }
+        }
+
+        for (int i = worstIndex + 1; i < lut.length; i++) {
+            if (lut[i].getTangentialVel() > EPSILON) {
+                return i;
+            }
+        }
+
+        return preferredIndex;
+    }
+
+    private double findPinnedVelocity(MotionParameters[] currentProfile, PathPoint[] points,
+                                      Path path, int pinIndex, int checkIndex,
+                                      double currentVelocity) {
+        if (currentVelocity <= EPSILON) {
+            return 0.0;
+        }
+
+        double low = 0.0;
+        double high = currentVelocity;
+        double bestVelocity = 0.0;
+        int boundedCheckIndex = Math.max(1, Math.min(checkIndex, currentProfile.length - 1));
+
+        for (int i = 0; i < PIN_SEARCH_ITERATIONS; i++) {
+            double candidate = (low + high) / 2.0;
+            MotionParameters[] trialProfile = copyProfile(currentProfile);
+            trialProfile[pinIndex].setTangentialVel(candidate);
+
+            runBackwardPass(trialProfile, points, path);
+            runForwardPass(trialProfile, points, path);
+            populateKinematicsAndPower(trialProfile, points, path);
+
+            if (trialProfile[boundedCheckIndex].getMotorPower()
+                    <= UTILIZATION_LIMIT + UTILIZATION_TOLERANCE) {
+                bestVelocity = trialProfile[pinIndex].getTangentialVel();
+                low = candidate;
+            } else {
+                high = candidate;
+            }
+        }
+
+        return Math.min(bestVelocity, currentVelocity);
+    }
+
+    private MotionParameters[] copyProfile(MotionParameters[] profile) {
+        MotionParameters[] copy = new MotionParameters[profile.length];
+        for (int i = 0; i < profile.length; i++) {
+            copy[i] = new MotionParameters()
+                    .setTangentialVel(profile[i].getTangentialVel())
+                    .setTangentialAccel(profile[i].getTangentialAccel())
+                    .setAngularVel(profile[i].getAngularVel())
+                    .setAngularAccel(profile[i].getAngularAccel());
+            copy[i].setMotorPower(profile[i].getMotorPower());
+            copy[i].setDistAlongCurve(profile[i].getDistAlongCurve());
+        }
+        return copy;
+    }
+
+    private double findMaxPreviousVelocity(Path path, PathPoint prevPoint,
+                                           PathPoint currentPoint, double nextVel,
+                                           double upperVel, double maxDecel, double ds) {
+        if (upperVel <= nextVel + EPSILON) {
+            return upperVel;
+        }
+
+        double low = Math.min(nextVel, upperVel);
+        double high = upperVel;
+        if (isBackwardTransitionFeasible(path, prevPoint, currentPoint, nextVel, high,
+                maxDecel, ds)) {
+            return high;
+        }
+
+        for (int i = 0; i < PIN_SEARCH_ITERATIONS; i++) {
+            double candidate = (low + high) / 2.0;
+            if (isBackwardTransitionFeasible(path, prevPoint, currentPoint, nextVel, candidate,
+                    maxDecel, ds)) {
+                low = candidate;
+            } else {
+                high = candidate;
+            }
+        }
+
+        return low;
+    }
+
+    private double findMaxNextVelocity(Path path, PathPoint prevPoint, PathPoint currentPoint,
+                                       double prevVel, double upperVel, double maxAccel,
+                                       double ds) {
+        if (upperVel <= prevVel + EPSILON) {
+            return upperVel;
+        }
+
+        double low = Math.min(prevVel, upperVel);
+        double high = upperVel;
+        if (isForwardTransitionFeasible(path, prevPoint, currentPoint, prevVel, high,
+                maxAccel, ds)) {
+            return high;
+        }
+
+        for (int i = 0; i < PIN_SEARCH_ITERATIONS; i++) {
+            double candidate = (low + high) / 2.0;
+            if (isForwardTransitionFeasible(path, prevPoint, currentPoint, prevVel, candidate,
+                    maxAccel, ds)) {
+                low = candidate;
+            } else {
+                high = candidate;
+            }
+        }
+
+        return low;
+    }
+
+    private boolean isBackwardTransitionFeasible(Path path, PathPoint prevPoint,
+                                                 PathPoint currentPoint, double nextVel,
+                                                 double prevVel, double maxDecel, double ds) {
+        double accel = calculateTangentialAccel(prevVel, nextVel, ds);
+        if (accel < -maxDecel - EPSILON) {
+            return false;
+        }
+        return isPowerFeasible(path, prevPoint, currentPoint, prevVel, nextVel, accel);
+    }
+
+    private boolean isForwardTransitionFeasible(Path path, PathPoint prevPoint,
+                                                PathPoint currentPoint, double prevVel,
+                                                double nextVel, double maxAccel, double ds) {
+        double accel = calculateTangentialAccel(prevVel, nextVel, ds);
+        if (accel > maxAccel + EPSILON) {
+            return false;
+        }
+        return isPowerFeasible(path, prevPoint, currentPoint, prevVel, nextVel, accel);
+    }
+
+    private boolean isPowerFeasible(Path path, PathPoint prevPoint, PathPoint currentPoint,
+                                    double prevVel, double nextVel, double accel) {
+        EvaluationResult result = new EvaluationResult();
+        evaluatePoint(path, prevPoint, currentPoint, prevVel, nextVel, accel, result);
+        return result.maxUtilization <= UTILIZATION_LIMIT + UTILIZATION_TOLERANCE;
+    }
+
+    private double calculateTangentialAccel(double prevVel, double nextVel, double ds) {
+        if (ds <= EPSILON) {
+            return 0.0;
+        }
+        return ((nextVel * nextVel) - (prevVel * prevVel)) / (2.0 * ds);
+    }
+
+    private double safeReachableVelocity(double startVelocity, double accel, double ds) {
+        if (ds <= EPSILON) {
+            return startVelocity;
+        }
+
+        double velocitySq = (startVelocity * startVelocity) + (2.0 * accel * ds);
+        return Math.sqrt(Math.max(0.0, velocitySq));
+    }
+
+    private double sanitizeNonNegative(double value) {
+        if (!Double.isFinite(value) || value < 0.0) {
+            return 0.0;
+        }
+        return value;
     }
 
     // region Logging and CSV Export
@@ -350,5 +571,14 @@ public abstract class BaseProfileGenerator {
         public double previousVelocity, newVelocity;
         public double maxUtilization, totalPower;
         public double pForward, pLateral, pHeading;
+    }
+
+    private static class ProfileEvaluation {
+        int worstIndex = 0;
+        double maxUtilization = 0.0;
+        double totalPower = 0.0;
+        double pForward = 0.0;
+        double pLateral = 0.0;
+        double pHeading = 0.0;
     }
 }

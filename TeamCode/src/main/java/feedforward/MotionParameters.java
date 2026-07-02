@@ -6,6 +6,7 @@ public class MotionParameters {
     private double angularVel;
     private double angularAccel;
     private double distAlongCurve = 0.0;
+    private double motorPower = 0.0;
 
     /**
      * No-args constructor to initialize a blank, reusable parameters object.
@@ -57,6 +58,10 @@ public class MotionParameters {
         this.angularAccel = angularAccel;
         return this;
     }
+
+    public double getMotorPower() { return motorPower; }
+
+    public void setMotorPower(double motorPower) { this.motorPower = motorPower; }
 
     public void setDistAlongCurve(double distAlongCurve) {
         this.distAlongCurve = distAlongCurve;

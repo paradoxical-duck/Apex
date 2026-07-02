@@ -9,7 +9,9 @@ import geometry.PathPoint;
 import geometry.PathSegment;
 import geometry.Pose;
 import paths.callbacks.Callback;
+import paths.constraint.ConstraintType;
 import paths.constraint.PathConstraint;
+import paths.constraint.TranslationalConstraint;
 import paths.heading.HeadingInterpolator;
 
 /**
@@ -79,14 +81,19 @@ public class Path extends FollowerMovement {
      * @param defaultLimit The hardware maximum velocity from FollowerConstants.
      * @return The active velocity limit in inches per second.
      */
-    public double getQuickVelocityLimit(double s, double defaultLimit) {
+    public double getQuickVelocityLimit(double t, double defaultLimit) {
         double currentLimit = defaultLimit;
         double highestS = -1.0;
 
-        for (PathConstraint constraint : constraints) {
-            if (s >= constraint.s && constraint.s > highestS) {
-                currentLimit = constraint.value_in;
-                highestS = constraint.s;
+        for (PathConstraint baseConstraint : constraints) {
+            if (baseConstraint instanceof TranslationalConstraint) {
+                TranslationalConstraint constraint = (TranslationalConstraint) baseConstraint;
+                if (constraint.getType() == ConstraintType.VELOCITY) {
+                    if (t >= constraint.getS() && constraint.getS() > highestS) {
+                        currentLimit = constraint.getValueIn();
+                        highestS = constraint.getS();
+                    }
+                }
             }
         }
         return currentLimit;
