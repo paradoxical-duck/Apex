@@ -5,7 +5,7 @@ package paths.heading;
  * at any given distance percentage along a path segment.
  * Author: DrPixelCat
  */
-public enum InterpolationStyle {
+public enum HolonomicInterpolationStyle {
 
     /**
      * The robot locks its heading to whatever the heading was at the start of the segment.
@@ -43,8 +43,8 @@ public enum InterpolationStyle {
     SMOOTH_START_TO_END,
 
     /**
-     * The heading is controlled by a custom user-defined function or curve,
+     * The heading is controlled by custom user-defined nodes along the curve,
      * allowing for complex heading profiles completely independent of the path's shape.
      */
-    CUSTOM_DIST_FUNCTION
+    NODE_BASED
 }

@@ -6,7 +6,8 @@ import geometry.Angle;
 import geometry.Dist;
 
 /**
- * Base class for all controllers. Handles common logic like tolerance checking, deadzone, and time anomaly detection.
+ * Base class for all controllers. Handles common logic like tolerance checking, deadzone, and
+ * time anomaly detection.
  * Subclasses implement the specific control algorithm in computeOutput().
  *
  * @author DrPixelCat
@@ -25,10 +26,11 @@ public abstract class Controller {
     private boolean isAtTarget = false;
     private long lastTimestamp;
 
-    public Controller() { this.lastTimestamp = System.nanoTime(); }
+    public Controller() {this.lastTimestamp = System.nanoTime();}
 
-    public void setAngularController() { this.angularController = true; }
-    public boolean isAngularController() { return angularController; }
+    public void setAngularController() {this.angularController = true;}
+
+    public boolean isAngularController() {return angularController;}
 
     public void setTolerance(Angle tolerance) {
         if (!angularController) {
@@ -36,24 +38,29 @@ public abstract class Controller {
         }
         this.tolerance = tolerance.getRad();
     }
+
     public void setTolerance(Dist tolerance) {
         if (angularController) {
             throw new IllegalStateException("Cannot set linear tolerance on an angular controller");
         }
         this.tolerance = tolerance.getIn();
     }
-    public double getTolerance() { return tolerance; }
 
-    public void setMaxOutput(double maxOutput) { this.maxOutput = maxOutput; }
-    public double getMaxOutput() { return maxOutput; }
+    public double getTolerance() {return tolerance;}
 
-    public void setDeadzone(double deadzone) { this.deadzone = deadzone; }
-    public double getDeadzone() { return deadzone; }
+    public void setMaxOutput(double maxOutput) {this.maxOutput = maxOutput;}
 
-    public void setTarget(double target) { this.target = target; }
-    public double getTarget() { return target; }
+    public double getMaxOutput() {return maxOutput;}
 
-    public boolean isAtTarget() { return isAtTarget; }
+    public void setDeadzone(double deadzone) {this.deadzone = deadzone;}
+
+    public double getDeadzone() {return deadzone;}
+
+    public void setTarget(double target) {this.target = target;}
+
+    public double getTarget() {return target;}
+
+    public boolean isAtTarget() {return isAtTarget;}
 
     /**
      * Resets the controller state. Call this right before starting a new movement
@@ -67,6 +74,7 @@ public abstract class Controller {
 
     /**
      * Calculates the output based on the current state and the internally set target.
+     *
      * @param current The current physical reading (e.g., position, angle)
      * @return The control output
      */
@@ -77,6 +85,7 @@ public abstract class Controller {
     /**
      * Calculates the output directly from a pre-calculated error.
      * Bypasses the internal target-current math.
+     *
      * @param error The calculated error (Target - Current)
      * @return The control output
      */
@@ -93,7 +102,10 @@ public abstract class Controller {
         isAtTarget = Math.abs(actualError) < tolerance;
 
         // Initialize lastError on first run to prevent derivative kick from 0
-        if (firstRun) { deltaTime = 0.0; firstRun = false; }
+        if (firstRun) {
+            deltaTime = 0.0;
+            firstRun = false;
+        }
 
         // Subclass-specific calculation
         double rawOutput = computeOutput(actualError, lastError, deltaTime);
@@ -108,10 +120,10 @@ public abstract class Controller {
         return rawOutput;
     }
 
-    public double getError() { return lastError; }
+    public double getError() {return lastError;}
 
     /**
-     * @param error Difference between goal and current position.
+     * @param error     Difference between goal and current position.
      * @param lastError Error from the previous loop.
      * @param deltaTime Time elapsed since last loop in seconds.
      */

@@ -28,6 +28,7 @@ public class Callback {
     /**
      * Constructs a physical path distance progress percentage callback.
      * * @param s The path completion percentage [0.0, 1.0].
+     *
      * @param action The code routine to execute when reached.
      */
     public Callback(double s, Runnable action) {
@@ -40,6 +41,7 @@ public class Callback {
     /**
      * Constructs an angular target sweep callback.
      * * @param theta The target field/robot orientation angle.
+     *
      * @param action The code routine to execute when reached.
      */
     public Callback(Angle theta, Runnable action) {
@@ -67,22 +69,26 @@ public class Callback {
 
     /**
      * Retrieves the target path progression factor.
+     *
      * @throws IllegalStateException if this callback is configured as an angular trigger.
      */
     public double getS() {
         if (this.type != CallbackType.DISTANCE) {
-            throw new IllegalStateException("Refusing to fetch distance parameter 's' from an ANGLE-type callback!");
+            throw new IllegalStateException("Refusing to fetch distance parameter 's' from an " +
+                    "ANGLE-type callback!");
         }
         return s;
     }
 
     /**
      * Retrieves the target triggering angle object.
+     *
      * @throws IllegalStateException if this callback is configured as a distance trigger.
      */
     public Angle getTheta() {
         if (this.type != CallbackType.ANGLE) {
-            throw new IllegalStateException("Refusing to fetch target angle 'theta' from a DISTANCE-type callback!");
+            throw new IllegalStateException("Refusing to fetch target angle 'theta' from a " +
+                    "DISTANCE-type callback!");
         }
         return theta;
     }

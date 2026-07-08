@@ -46,7 +46,9 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
         otos.setPosition(newPose);
     }
 
-    /** Configuration class for goBILDA Pinpoint localizer. */
+    /**
+     * Configuration class for goBILDA Pinpoint localizer.
+     */
     public static class Config extends BaseLocalizerConfig<OTOS.Config> {
         public String name = "defaultOTOSNName";
         public Pose offset = Pose.zero();
@@ -61,34 +63,49 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
             return new OTOS(this, hardwareMap);
         }
 
-        /** Sets the name of the OTOS in the hardware map. */
-        public Config setName(String name) { this.name = name; return this; }
+        /**
+         * Sets the name of the OTOS in the hardware map.
+         */
+        public Config setName(String name) {
+            this.name = name;
+            return this;
+        }
 
-        /** Sets the offset of the OTOS from the center of the robot. */
-        public Config setOffset(Pose offset) { this.offset = offset; return this; }
+        /**
+         * Sets the offset of the OTOS from the center of the robot.
+         */
+        public Config setOffset(Pose offset) {
+            this.offset = offset;
+            return this;
+        }
 
         /**
          * Sets the linear scalar for the OTOS. This is a multiplier applied to the linear position
          * and velocity estimates from the OTOS to correct for any systematic errors in the sensor.
-         * The value must be between 0.872 and 1.127, which corresponds to a correction of +/- 12.7%.
+         * The value must be between 0.872 and 1.127, which corresponds to a correction of +/- 12
+         * .7%.
          */
         public Config setLinearScalar(double linearScalar) {
             if (linearScalar < Driver.MIN_SCALAR || linearScalar > Driver.MAX_SCALAR) {
                 throw new IllegalArgumentException("Linear scalar must be between " + Driver.MIN_SCALAR + " and " + Driver.MAX_SCALAR);
             }
-            this.linearScalar = linearScalar; return this;
+            this.linearScalar = linearScalar;
+            return this;
         }
 
         /**
-         * Sets the angular scalar for the OTOS. This is a multiplier applied to the angular position
+         * Sets the angular scalar for the OTOS. This is a multiplier applied to the angular
+         * position
          * and velocity estimates from the OTOS to correct for any systematic errors in the sensor.
-         * The value must be between 0.872 and 1.127, which corresponds to a correction of +/- 12.7%.
+         * The value must be between 0.872 and 1.127, which corresponds to a correction of +/- 12
+         * .7%.
          */
         public Config setAngularScalar(double angularScalar) {
             if (angularScalar < Driver.MIN_SCALAR || angularScalar > Driver.MAX_SCALAR) {
                 throw new IllegalArgumentException("Angular scalar must be between " + Driver.MIN_SCALAR + " and " + Driver.MAX_SCALAR);
             }
-            this.angularScalar = angularScalar; return this;
+            this.angularScalar = angularScalar;
+            return this;
         }
     }
 
@@ -105,7 +122,8 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
     @DeviceProperties(
             name = "SparkFun OTOS",
             xmlTag = "SparkFunOTOS",
-            description = "SparkFun Qwiic Optical Tracking Odometry Sensor, optimized for Apex Pathing"
+            description = "SparkFun Qwiic Optical Tracking Odometry Sensor, optimized for Apex " +
+                    "Pathing"
     )
     private static class Driver extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         private final PoseFactory pose = new PoseFactory(DistUnit.M, AngleUnit.RAD);
@@ -120,8 +138,10 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
         private float hAcceleration = 0;
 
         public static final byte DEFAULT_ADDRESS = 0x17; // Default I2C addresses of the Qwiic OTOS
-        public static final double MIN_SCALAR = 0.872; // Minimum scalar value for the linear and angular scalars
-        public static final double MAX_SCALAR = 1.127; // Maximum scalar value for the linear and angular scalars
+        public static final double MIN_SCALAR = 0.872; // Minimum scalar value for the linear and
+        // angular scalars
+        public static final double MAX_SCALAR = 1.127; // Maximum scalar value for the linear and
+        // angular scalars
 
         // OTOS register map (not all are listed here because they aren't needed)
         protected static final byte REG_PRODUCT_ID = 0x00;
@@ -181,21 +201,24 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
         }
 
         @Override
-        protected boolean doInitialize() { return isConnected() ;}
+        protected boolean doInitialize() {return isConnected();}
 
         @Override
-        public Manufacturer getManufacturer() { return Manufacturer.SparkFun; }
+        public Manufacturer getManufacturer() {return Manufacturer.SparkFun;}
 
         @Override
-        public String getDeviceName() { return "SparkFun Qwiic Optical Tracking Odometry Sensor"; }
+        public String getDeviceName() {return "SparkFun Qwiic Optical Tracking Odometry Sensor";}
 
-        /** @return true if the OTOS is connected, false otherwise */
-        public boolean isConnected() { return deviceClient.read8(REG_PRODUCT_ID) == PRODUCT_ID; }
+        /**
+         * @return true if the OTOS is connected, false otherwise
+         */
+        public boolean isConnected() {return deviceClient.read8(REG_PRODUCT_ID) == PRODUCT_ID;}
 
         /**
          * Calibrates the IMU on the OTOS, which removes the accelerometer and
          * gyroscope offsets. This will do the full 255 samples and wait until
          * he calibration is done, which takes about 612ms as of firmware v1.0)
+         *
          * @return true if the calibration was successful, false otherwise
          */
         public boolean calibrate() {
@@ -203,33 +226,41 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
             deviceClient.write8(REG_IMU_CALIB, 255);
 
             // Wait 1 sample period (2.4ms) to ensure the register updates
-            try { Thread.sleep(3);
+            try {
+                Thread.sleep(3);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); return false;
+                Thread.currentThread().interrupt();
+                return false;
             }
 
             for (int numAttempts = 255; numAttempts > 0; numAttempts--) {
                 // Read the gyro calibration register value to check completion
-                if (deviceClient.read8(REG_IMU_CALIB) == 0) { return true; }
+                if (deviceClient.read8(REG_IMU_CALIB) == 0) {return true;}
 
                 // Give a short delay between reads. As of firmware v1.0, samples take
                 // 2.4ms each, so 3ms should guarantee the next sample is done. This
                 // also ensures the max attempts is not exceeded in normal operation
-                try { Thread.sleep(3);
+                try {
+                    Thread.sleep(3);
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); return false;
+                    Thread.currentThread().interrupt();
+                    return false;
                 }
             }
 
             return false; // Max number of attempts reached, calibration failed
         }
 
-        /** Resets the position tracker to zero. */
+        /**
+         * Resets the position tracker to zero.
+         */
         public void resetTracking() {
             deviceClient.write(REG_POS_XL, new byte[6]);
         }
 
-        /** Sets the position tracker to the specified pose. */
+        /**
+         * Sets the position tracker to the specified pose.
+         */
         public void setPosition(Pose pose) {
             byte[] rawData = new byte[6]; // Store raw data in a temporary buffer
 
@@ -249,14 +280,19 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
             deviceClient.write(REG_POS_XL, rawData); // Write the raw data to the device
         }
 
-        /** Calibrates the IMU and resets the tracking frame. */
-        public void calibrateAndReset() { calibrate(); resetTracking(); }
+        /**
+         * Calibrates the IMU and resets the tracking frame.
+         */
+        public void calibrateAndReset() {
+            calibrate();
+            resetTracking();
+        }
 
         /**
          * @param scalar linear scalar, must be between 0.872 and 1.127
          */
         public void setLinearScalar(double scalar) {
-            if (scalar < MIN_SCALAR || scalar > MAX_SCALAR) { return; }
+            if (scalar < MIN_SCALAR || scalar > MAX_SCALAR) {return;}
 
             // Convert to integer, multiples of 0.1% (+0.5 to round instead of truncate)
             byte rawScalar = (byte) ((scalar - 1.0) * 1000 + 0.5);
@@ -267,14 +303,16 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
          * @param scalar angular scalar, must be between 0.872 and 1.127
          */
         public void setAngularScalar(double scalar) {
-            if (scalar < MIN_SCALAR || scalar > MAX_SCALAR) { return; }
+            if (scalar < MIN_SCALAR || scalar > MAX_SCALAR) {return;}
 
             // Convert to integer, multiples of 0.1% (+0.5 to round instead of truncate)
             byte rawScalar = (byte) ((scalar - 1.0) * 1000 + 0.5);
             deviceClient.write8(REG_SCALAR_ANGULAR, rawScalar);
         }
 
-        /** @param pose Offset of the sensor relative to the center of the robot */
+        /**
+         * @param pose Offset of the sensor relative to the center of the robot
+         */
         public void setOffset(Pose pose) {
             byte[] rawData = new byte[6]; // Store raw data in a temporary buffer
 
@@ -316,13 +354,19 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
             hAcceleration = (float) (data.getShort(16) * INT16_TO_RPSS);
         }
 
-        /** @return the current pose estimate of the robot from the OTOS */
+        /**
+         * @return the current pose estimate of the robot from the OTOS
+         */
         public Pose getPose() { return pose.of(xPosition, yPosition, hOrientation); }
 
-        /** @return the current velocity estimate of the robot from the OTOS */
+        /**
+         * @return the current velocity estimate of the robot from the OTOS
+         */
         public Pose getVel() { return pose.of(xVelocity, yVelocity, hVelocity); }
 
-        /** @return the current acceleration estimate of the robot from the OTOS */
+        /**
+         * @return the current acceleration estimate of the robot from the OTOS
+         */
         public Pose getAccel() { return pose.of(xAcceleration, yAcceleration, hAcceleration); }
     }
 }

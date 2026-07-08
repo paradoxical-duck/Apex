@@ -6,6 +6,7 @@ import localizers.BaseLocalizerConfig;
 /**
  * Abstract base class for your constants
  * Methods implemented by your Constants file
+ *
  * @author Dylan B. 18597 RoboClovers - Delta
  * @author Sohum Arora 22985 Paraducks
  */
@@ -13,6 +14,6 @@ public abstract class ApexConfig {
     public abstract BaseDrivetrainConfig<?> drivetrainConfig();
 
     public abstract BaseLocalizerConfig<?> localizerConfig();
-    public abstract FollowerConstants followerConfig();
 
+    public abstract FollowerConstants followerConfig();
 }

@@ -1,6 +1,5 @@
 package geometry;
 
-import geometry.Vector;
 import util.DistUnit;
 
 /**
@@ -12,6 +11,7 @@ import util.DistUnit;
  * many control points are in the path.
  * TODO: Maybe add heading component to each control point
  * Author: DrPixelCat
+ *
  * @author Sohum Arora
  */
 public class BSpline implements ParametricSegment {
@@ -45,7 +45,8 @@ public class BSpline implements ParametricSegment {
         // 1. Create ghost points
         Vector[] paddedPoints = new Vector[inputPoints.length + 2];
         paddedPoints[0] = inputPoints[1].reflect(inputPoints[0]);
-        paddedPoints[paddedPoints.length - 1] = inputPoints[inputPoints.length - 2].reflect(inputPoints[inputPoints.length - 1]);
+        paddedPoints[paddedPoints.length - 1] =
+                inputPoints[inputPoints.length - 2].reflect(inputPoints[inputPoints.length - 1]);
         System.arraycopy(inputPoints, 0, paddedPoints, 1, inputPoints.length);
 
         // 2. Precompute and cache coefficients for all segments
@@ -59,8 +60,10 @@ public class BSpline implements ParametricSegment {
             Vector p2 = paddedPoints[i + 2];
             Vector p3 = paddedPoints[i + 3];
 
-            double[] xWindow = {p0.getX().getIn(), p1.getX().getIn(), p2.getX().getIn(), p3.getX().getIn()};
-            double[] yWindow = {p0.getY().getIn(), p1.getY().getIn(), p2.getY().getIn(), p3.getY().getIn()};
+            double[] xWindow = {p0.getX().getIn(), p1.getX().getIn(), p2.getX().getIn(),
+                    p3.getX().getIn()};
+            double[] yWindow = {p0.getY().getIn(), p1.getY().getIn(), p2.getY().getIn(),
+                    p3.getY().getIn()};
 
             this.cx[i] = BLEND_MATRIX.multiply(xWindow);
             this.cy[i] = BLEND_MATRIX.multiply(yWindow);

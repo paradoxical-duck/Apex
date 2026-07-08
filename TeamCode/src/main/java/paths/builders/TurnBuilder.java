@@ -2,11 +2,14 @@ package paths.builders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
-import paths.callbacks.Callback;
-import paths.movements.Turn;
+import core.FollowerConstants;
+import feedforward.angular.TurnProfileGenerator;
 import geometry.Angle;
 import geometry.Pose;
+import paths.callbacks.Callback;
+import paths.movements.Turn;
 
 /**
  * A builder class designed to construct a {@link Turn} fluently.
@@ -17,17 +20,28 @@ import geometry.Pose;
 public class TurnBuilder {
     private final Pose startPose;
     private Angle targetHeading = null;
+    private final FollowerConstants config;
 
-    private final List<Runnable> buildTasks = new ArrayList<>();
+    private double angularVelLimitRad;
+    private double angularAccelLimitRad;
+
+    private final List<Consumer<Turn>> buildTasks = new ArrayList<>();
 
     /**
-     * Initializes the TurnBuilder with the robot's starting state.
+     * Initializes the TurnBuilder with the robot's starting state and loads global limits.
+     *
      * @param startPose The Pose of the robot before the turn begins.
      */
-    protected TurnBuilder(Pose startPose) { this.startPose = startPose; }
+    public TurnBuilder(Pose startPose) {
+        this.startPose = startPose;
+        this.config = new FollowerConstants();
+        this.angularVelLimitRad = config.angularVelocityLimit.getRad();
+        this.angularAccelLimitRad = config.angularAccelerationLimit.getRad();
+    }
 
     /**
      * Defines the target angle for the point turn.
+     *
      * @param targetHeading The Angle to rotate to.
      * @return The current TurnBuilder instance.
      */
@@ -37,52 +51,113 @@ public class TurnBuilder {
     }
 
     /**
-     * Attaches an executable callback to trigger when the robot passes a specific angle during the turn.
+     * Attaches an executable callback to trigger when the robot passes a specific angle during
+     * the turn.
      *
-     * @param angle The angle at which the callback should trigger.
+     * @param angle  The angle at which the callback should trigger.
      * @param action The code to execute.
      * @return The current TurnBuilder instance for method chaining.
      */
     public TurnBuilder addAngularCallback(Angle angle, Runnable action) {
-        buildTasks.add(() -> {
-            if (targetHeading == null) return;
-            Turn finalTurn = new Turn(startPose, targetHeading);
-            Angle startRad = finalTurn.getStartPose().getHeading();
-            Angle endRad = finalTurn.getEndPose().getHeading();
+        buildTasks.add(turn -> {
+            Angle startRad = turn.getStartPose().getHeading();
+            Angle endRad = turn.getEndPose().getHeading();
 
             double totalDiff = startRad.getShortestAngleTo(endRad).getRad();
             double targetDiff = startRad.getShortestAngleTo(angle).getRad();
 
             if (Math.abs(totalDiff) < 1e-6) {
                 if (Math.abs(targetDiff) > 1e-6) {
-                    throw new IllegalArgumentException("Callback out of bounds: The turn has no rotational distance.");
+                    throw new IllegalArgumentException("Callback out of bounds: The turn has no " +
+                            "rotational distance.");
                 }
             } else if ((totalDiff * targetDiff < 0) || (Math.abs(targetDiff) > Math.abs(totalDiff))) {
-                throw new IllegalArgumentException("Angular callback is outside the sweep range of this turn.");
+                throw new IllegalArgumentException("Angular callback is outside the sweep range " +
+                        "of this turn.");
             }
+
+            turn.addCallback(new Callback(angle, action));
         });
 
         return this;
     }
 
     /**
-     * Compiles the turn, verifies callback bounds, and returns the executable Turn movement.
-     * @return The fully constructed {@link Turn}.\
+     * Sets a custom angular velocity limit for this specific turn.
+     *
+     * @param limit The maximum angular velocity.
+     * @return The current TurnBuilder instance for method chaining.
      */
-    public Turn build() {
+    public TurnBuilder setAngularVelocityLimit(Angle limit) {
+        if (limit.getRad() > config.angularVelocityLimit.getRad()) {
+            throw new IllegalStateException("The angular velocity limit must be <= the " +
+                    "drivetrain's max angular velocity constraint!");
+        }
+        this.angularVelLimitRad = limit.getRad();
+        return this;
+    }
+
+    /**
+     * Sets a custom angular acceleration limit for this specific turn.
+     *
+     * @param limit The maximum angular acceleration.
+     * @return The current TurnBuilder instance for method chaining.
+     */
+    public TurnBuilder setAngularAccelerationLimit(Angle limit) {
+        if (limit.getRad() > config.angularAccelerationLimit.getRad()) {
+            throw new IllegalStateException("The angular acceleration limit must be <= the " +
+                    "drivetrain's max angular acceleration constraint!");
+        }
+        this.angularAccelLimitRad = limit.getRad();
+        return this;
+    }
+
+    /**
+     * Internal method to compile the turn and execute callback bounds checks.
+     */
+    private Turn compileTurn() {
         if (targetHeading == null) {
-            throw new IllegalStateException("Cannot build Turn: No target heading was specified! Use .turnTo().");
+            throw new IllegalStateException("Cannot build Turn: No target heading was specified! " +
+                    "Use .turnTo().");
         }
 
-        Turn finalTurn = new Turn(startPose, targetHeading);
+        Turn turn = new Turn(startPose, targetHeading);
 
-        for (Runnable task : buildTasks) {
-            task.run();
+        for (Consumer<Turn> task : buildTasks) {
+            task.accept(turn);
         }
 
-        for (Runnable task : buildTasks) {
-            finalTurn.addCallback(new Callback(targetHeading, task));
-        }
+        return turn;
+    }
+
+    /**
+     * Compiles the turn, verifies callback bounds, and returns the executable Turn movement without
+     * motion profiling.
+     *
+     * @return The fully constructed {@link Turn}.
+     */
+    public Turn quickBuild() {
+        return compileTurn();
+    }
+
+    /**
+     * Compiles the turn, verifies callback bounds, and returns the executable, profiled Turn
+     * movement.
+     * RECOMMENDED: Use .quickBuild() instead for faster turns and generation time. Profiles are
+     * not needed as much for {@link Turn} movements so much as Path movements.
+     *
+     * @return The fully constructed {@link Turn} with an attached feedforward profile.
+     */
+    public Turn profiledBuild() {
+        Turn finalTurn = compileTurn();
+
+        TurnProfileGenerator motionGen = new TurnProfileGenerator(
+                angularVelLimitRad,
+                angularAccelLimitRad
+        );
+
+        // Ensure TurnProfileGenerator generates a compatible LUT for the Turn object
+        finalTurn.setFeedforwardLut(motionGen.generate(finalTurn));
 
         return finalTurn;
     }

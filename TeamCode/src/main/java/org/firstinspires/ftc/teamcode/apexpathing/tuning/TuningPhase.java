@@ -252,7 +252,7 @@ public abstract class TuningPhase {
                 context.follower().update();
                 double position = angular
                         ? context.follower().getPose().getHeading().getRad()
-                        : context.follower().getPose().getPos().getX().getIn();
+                        : context.follower().getPose().getVec().getX().getIn();
                 maxDeviation = Math.max(Math.abs(position), maxDeviation);
 
                 if (angular) {
@@ -330,7 +330,7 @@ public abstract class TuningPhase {
             context.follower().update();
             double currentVel = angular
                     ? context.follower().getVelocity().getHeading().getRad()
-                    : context.follower().getVelocity().getPos().getX().getIn();
+                    : context.follower().getVelocity().getVec().getX().getIn();
 
             double now = System.nanoTime();
             double deltaT = (now - lastTime) / 1e9;

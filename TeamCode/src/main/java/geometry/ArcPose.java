@@ -13,11 +13,16 @@ package geometry;
 public class ArcPose extends Pose {
     Dist radius;
 
-    /** Creates an ArcPose from a position Vector and a radius. */
+    /**
+     * Creates an ArcPose from a position Vector and a radius.
+     */
     public ArcPose(Vector position, Dist radius) {
-        super(position, Angle.fromRad(0)); this.radius = radius;
+        super(position, Angle.fromRad(0));
+        this.radius = radius;
     }
 
-    /** @return the radius of this ArcPose. */
-    public Dist getRadius() { return radius; }
+    /**
+     * @return the radius of this ArcPose.
+     */
+    public Dist getRadius() {return radius;}
 }

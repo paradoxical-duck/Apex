@@ -37,7 +37,7 @@ public class TwoWheel extends BaseLocalizer<TwoWheel.Config> {
         double deltaX  = forwardPod.getDeltaInches() - config.DPar.get(DistUnit.IN) * deltaYaw;
         double deltaY = strafePod.getDeltaInches() - config.DPerp.get(DistUnit.IN) * deltaYaw;
         pose = new Pose(
-                pose.getPos().plus(
+                pose.getVec().plus(
                 new Vector(
                         Dist.fromIn(deltaX* Math.cos(avgYaw) - (deltaY*Math.sin(avgYaw))),
                         Dist.fromIn(deltaX*Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))

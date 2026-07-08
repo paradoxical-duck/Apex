@@ -36,7 +36,6 @@ public class TunerContext {
     public double maxLateralAccel = 40.0;
     public double headingToleranceDeg;
     public double distanceToleranceIn;
-    public double tTolerance;
 
     public TunerContext(LinearOpMode opMode, FollowerConstants followerConstants) {
         this.opMode = opMode;
@@ -47,14 +46,13 @@ public class TunerContext {
         headingP = defaults.headingCoeffs.kP;
         headingD = defaults.headingCoeffs.kD;
         headingS = defaults.headingCoeffs.kS;
-        translationP = defaults.driveCoeffs.kP;
-        translationD = defaults.driveCoeffs.kD;
-        translationS = defaults.driveCoeffs.kS;
-        velocityFF = defaults.lateralKV;
+        translationP = defaults.translationalCoeffs.kP;
+        translationD = defaults.translationalCoeffs.kD;
+        translationS = defaults.translationalCoeffs.kS;
+        velocityFF = defaults.translationalKV;
         headingToleranceDeg = defaults.headingTolerance.getDeg();
         distanceToleranceIn = defaults.distanceTolerance.getIn();
-        tTolerance = defaults.tTolerance;
-        maxLateralAccel = defaults.maxLateralAccel > 10 ? defaults.maxLateralAccel : 40.0;
+        maxLateralAccel = defaults.strafeAccelerationLimit.getIn() > 10 ? defaults.strafeAccelerationLimit.getIn() : 40.0;
     }
 
     public void setFollower(Follower follower) {
@@ -102,13 +100,11 @@ public class TunerContext {
 
     public void updateFollowerConfig() {
         followerConstants.headingCoeffs = new PDSCoefficients(headingP, headingD, headingS, 0);
-        followerConstants.driveCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
-        followerConstants.lateralCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
-        followerConstants.lateralKV = velocityFF;
+        followerConstants.translationalCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
+        followerConstants.translationalKV = velocityFF;
         followerConstants.headingTolerance = Angle.fromDeg(headingToleranceDeg);
         followerConstants.distanceTolerance = Dist.fromIn(distanceToleranceIn);
-        followerConstants.tTolerance = tTolerance;
-        followerConstants.maxLateralAccel = maxLateralAccel;
+        followerConstants.strafeAccelerationLimit = Dist.fromIn(maxLateralAccel);
     }
 
     public void saveConstantsToJson() {

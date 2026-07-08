@@ -3,6 +3,7 @@ package geometry;
 /**
  * A generic class for matrix mathematics.
  * Author: DrPixelCat
+ *
  * @author Sohum Arora 22985 Paraducks
  */
 public class Matrix {
@@ -49,6 +50,7 @@ public class Matrix {
         }
         return result;
     }
+
     Matrix multiply(Matrix m) {
         if (this.cols != m.rows) {
             throw new IllegalArgumentException(

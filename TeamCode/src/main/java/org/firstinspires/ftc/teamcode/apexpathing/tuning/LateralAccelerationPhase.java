@@ -42,12 +42,12 @@ public class LateralAccelerationPhase extends TuningPhase {
         context.resetPose();
 
         Pose start = context.follower().getPose();
-        Path testCurve = Builder.path(
+        Path testCurve = Builder.holonomicPath(
                 start,
-                new Pose(start.getPos().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(0, DistUnit.IN))), start.getHeading()),
-                new Pose(start.getPos().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(90))),
-                new Pose(start.getPos().plus(new Vector(Dist.of(0, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(180)))
-        ).build();
+                new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(0, DistUnit.IN))), start.getHeading()),
+                new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(90))),
+                new Pose(start.getVec().plus(new Vector(Dist.of(0, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(180)))
+        ).profiledBuild();
 
         context.follower().follow(testCurve);
         accelMaxError = 0;
@@ -57,7 +57,7 @@ public class LateralAccelerationPhase extends TuningPhase {
 
     private boolean updatePathTest() throws InterruptedException {
         context.follower().update();
-        double err = context.follower().getPose().getPos().getMag().getIn();
+        double err = context.follower().getPose().getVec().getMag().getIn();
         if (err > accelMaxError) {
             accelMaxError = err;
         }

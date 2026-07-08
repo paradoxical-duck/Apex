@@ -26,7 +26,7 @@ public class ThreeWheel extends BaseLocalizer<ThreeWheel.Config> {
         double avgYaw = oldYaw + deltaYaw/2.0;
 
         pose = new Pose(
-                pose.getPos().plus(
+                pose.getVec().plus(
                         new Vector(
                                 Dist.fromIn(deltaX * Math.cos(avgYaw) - deltaY * Math.sin(avgYaw)),
                                 Dist.fromIn(deltaX * Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))

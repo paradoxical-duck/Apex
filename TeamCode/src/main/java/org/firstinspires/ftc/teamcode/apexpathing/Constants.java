@@ -12,7 +12,8 @@ import util.MotorFactory;
 /**
  * This class extends {@link ApexConfig} and provides the specific constants for the drivetrain,
  * localizer, and follower that we want to use in our OpMode. In this example, we are using a
- * mecanum drivetrain, an OTOS localizer, and a point-to-point follower. You can modify the values in
+ * mecanum drivetrain, an OTOS localizer, and a point-to-point follower. You can modify the
+ * values in
  * the setDrivetrainConstants(), setLocalizerConstants(), and setFollowerConstants() methods to fit
  * your robot's hardware and tuning preferences.
  *
@@ -24,6 +25,7 @@ public class Constants extends ApexConfig {
     public FollowerConstants followerConfig() {
         return new FollowerConstants();
     }
+
     @Override
     public BaseDrivetrainConfig<?> drivetrainConfig() {
         return new Mecanum.Config()
@@ -40,7 +42,8 @@ public class Constants extends ApexConfig {
         return new Pinpoint.Config()
                 .setName("pinpoint")
                 .setOffsets(0, 0, DistUnit.IN)
-                .setEncoderDirections(Pinpoint.EncoderDirection.FORWARD, Pinpoint.EncoderDirection.FORWARD)
+                .setEncoderDirections(Pinpoint.EncoderDirection.FORWARD,
+                        Pinpoint.EncoderDirection.FORWARD)
                 .setEncoderResolution(Pinpoint.GoBildaPods.goBILDA_4_BAR_POD);
     }
 }
@@ -49,7 +52,8 @@ public class Constants extends ApexConfig {
 return new Tank.Config()
         .setFrontLeftMotor(new MotorFactory("frontLeftMotor"))
         .setBackLeftMotor(new MotorFactory("backLeftMotor"))
-        .setFrontRightMotor(new MotorFactory("frontRightMotor").reverse()) // Don't use back motors for 2 wheel
+        .setFrontRightMotor(new MotorFactory("frontRightMotor").reverse()) // Don't use back
+        motors for 2 wheel
         .setBackRightMotor(new MotorFactory("backRightMotor").reverse())
         .setRobotCentric(true)
         .setMaxPower(1.0);

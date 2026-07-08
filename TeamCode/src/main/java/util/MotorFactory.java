@@ -1,10 +1,10 @@
 package util;
 
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior;
 import com.qualcomm.robotcore.hardware.DcMotor.RunMode;
+import com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple.Direction;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
  * A class used to easily create and configure {@link DcMotorEx} objects.
@@ -18,20 +18,41 @@ public class MotorFactory {
     private boolean floatMode = false;
     private RunMode runMode = RunMode.RUN_WITHOUT_ENCODER;
 
-    /** Creates a motor config with the given name and defaults (not reversed, brake mode, run without encoder). */
-    public MotorFactory(String name) { this.name = name; }
+    /**
+     * Creates a motor config with the given name and defaults (not reversed, brake mode, run
+     * without encoder).
+     */
+    public MotorFactory(String name) {this.name = name;}
 
-    /** Creates a default motor config ("defaultMotorName", not reversed, brake mode, run without encoder). */
-    public MotorFactory() { this("defaultMotorName"); }
+    /**
+     * Creates a default motor config ("defaultMotorName", not reversed, brake mode, run without
+     * encoder).
+     */
+    public MotorFactory() {this("defaultMotorName");}
 
-    /** Sets the motor direction to reverse instead of teh default forward */
-    public MotorFactory reverse() { this.reversed = true; return this; }
+    /**
+     * Sets the motor direction to reverse instead of teh default forward
+     */
+    public MotorFactory reverse() {
+        this.reversed = true;
+        return this;
+    }
 
-    /** Sets the motors zero power behavior to float instead of the default brake */
-    public MotorFactory floatMode() { this.floatMode = true; return this; }
+    /**
+     * Sets the motors zero power behavior to float instead of the default brake
+     */
+    public MotorFactory floatMode() {
+        this.floatMode = true;
+        return this;
+    }
 
-    /** @param mode The {@link RunMode} of the motor. Defaults to RUN_WITHOUT_ENCODER. */
-    public MotorFactory runWith(RunMode mode) { this.runMode = mode; return this; }
+    /**
+     * @param mode The {@link RunMode} of the motor. Defaults to RUN_WITHOUT_ENCODER.
+     */
+    public MotorFactory runWith(RunMode mode) {
+        this.runMode = mode;
+        return this;
+    }
 
     /**
      * @param hardwareMap the {@link HardwareMap} to use for initializing the motor
@@ -45,8 +66,11 @@ public class MotorFactory {
         return motor;
     }
 
-    public String getName() { return name; }
-    public boolean getReversed() { return reversed; }
-    public boolean getFloatMode() { return floatMode; }
-    public RunMode getRunMode() { return runMode; }
+    public String getName() {return name;}
+
+    public boolean getReversed() {return reversed;}
+
+    public boolean getFloatMode() {return floatMode;}
+
+    public RunMode getRunMode() {return runMode;}
 }

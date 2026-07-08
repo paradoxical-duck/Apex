@@ -10,7 +10,7 @@ import util.MotorFactory;
  * @author Dylan B. - 18597 RoboClovers - Delta
  */
 public class Tank extends BaseDrivetrain<Tank.Config> {
-    public Tank(Config config, HardwareMap hardwareMap) { super(config, hardwareMap); }
+    public Tank(Config config, HardwareMap hardwareMap) {super(config, hardwareMap);}
 
     @Override
     public void moveWithVectors(double x, double y, double turn) {
@@ -20,29 +20,48 @@ public class Tank extends BaseDrivetrain<Tank.Config> {
         setPowers(x - turn, x + turn, x - turn, x + turn);
     }
 
-    /** Configuration class for Tank drivetrain. */
+    @Override
+    public boolean isHolonomic() {
+        return false;
+    }
+
+    /**
+     * Configuration class for Tank drivetrain.
+     */
     public static class Config extends BaseDrivetrainConfig<Config> {
         @Override
-        public Tank build(HardwareMap hardwareMap) { return new Tank(this, hardwareMap); }
+        public Tank build(HardwareMap hardwareMap) {return new Tank(this, hardwareMap);}
 
-        /** Sets the front left motor configuration. */
+        /**
+         * Sets the front left motor configuration.
+         */
         public Config setFrontLeftMotor(MotorFactory motorFactory) {
-            this.flMotorConfig = motorFactory; return this;
+            this.flMotorConfig = motorFactory;
+            return this;
         }
 
-        /** Sets the front right motor configuration. */
+        /**
+         * Sets the front right motor configuration.
+         */
         public Config setFrontRightMotor(MotorFactory motorFactory) {
-            this.frMotorConfig = motorFactory; return this;
+            this.frMotorConfig = motorFactory;
+            return this;
         }
 
-        /** Sets the back left motor configuration. Do not use this for 2 wheel tank */
+        /**
+         * Sets the back left motor configuration. Do not use this for 2 wheel tank
+         */
         public Config setBackLeftMotor(MotorFactory motorFactory) {
-            this.blMotorConfig = motorFactory; return this;
+            this.blMotorConfig = motorFactory;
+            return this;
         }
 
-        /** Sets the back right motor configuration. Do not use this for 2 wheel tank */
+        /**
+         * Sets the back right motor configuration. Do not use this for 2 wheel tank
+         */
         public Config setBackRightMotor(MotorFactory motorFactory) {
-            this.brMotorConfig = motorFactory; return this;
+            this.brMotorConfig = motorFactory;
+            return this;
         }
     }
 }

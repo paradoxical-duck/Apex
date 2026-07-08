@@ -44,7 +44,8 @@ public class PathSegment {
                 distFromEnd += lastPoint.minus(location).getMag().getIn();
             }
             lastPoint = location;
-            LUTpoints[i] = new PathPoint(t, distFromEnd, location);
+            LUTpoints[i] = new PathPoint(t, distFromEnd, location,
+                    getFirstDerivative(t), getSignedCurvature(t), getCurvatureDerivative(t));
         }
 
         this.length = distFromEnd;
@@ -112,7 +113,7 @@ public class PathSegment {
      * @param t The parametric progression [0.0, 1.0].
      * @return The 2D position Vector.
      */
-    public Vector getPosition(double t) { return segment.getPosition(t); }
+    public Vector getPosition(double t) {return segment.getPosition(t);}
 
     /**
      * Retrieves the first derivative (velocity) of the curve at a given 't'.
@@ -120,7 +121,7 @@ public class PathSegment {
      * @param t The parametric progression [0.0, 1.0].
      * @return The velocity Vector.
      */
-    public Vector getFirstDerivative(double t) { return segment.getFirstDerivative(t); }
+    public Vector getFirstDerivative(double t) {return segment.getFirstDerivative(t);}
 
     /**
      * Retrieves the second derivative (acceleration) of the curve at a given 't'.
@@ -128,13 +129,14 @@ public class PathSegment {
      * @param t The parametric progression [0.0, 1.0].
      * @return The acceleration Vector.
      */
-    public Vector getSecondDerivative(double t) { return segment.getSecondDerivative(t); }
+    public Vector getSecondDerivative(double t) {return segment.getSecondDerivative(t);}
 
     /**
      * Calculates the remaining physical distance to the end of the segment
      * using a blisteringly fast O(1) LUT index calculation.
      *
-     * @param closestPointOnCurve The calculated physical position on the curve closest to the robot.
+     * @param closestPointOnCurve The calculated physical position on the curve closest to the
+     *                            robot.
      * @param t                   The parametric 't' value that yielded closestPointOnCurve.
      * @return The remaining distance in inches.
      */
@@ -156,6 +158,7 @@ public class PathSegment {
     }
 
     // VERY approximate length calculation for Coarse Polyline Approximation
+
     /**
      * A highly optimized approximation of the segment's length used exclusively
      * to determine how many LUT points to allocate.
@@ -177,7 +180,7 @@ public class PathSegment {
     /**
      * @return The high-accuracy calculated length of the segment in inches.
      */
-    public double getLengthIn() { return length; }
+    public double getLengthIn() {return length;}
 
     /**
      * Calculates the instantaneous radius of curvature of a parametric curve at a specific point.
@@ -187,22 +190,94 @@ public class PathSegment {
      * of the first derivative cubed, divided by the magnitude of the 2D cross product
      * of the first and second derivatives.
      *
-     *
      * @param firstDerivative  The first derivative vector (velocity/tangent) of the curve.
      * @param secondDerivative The second derivative vector (acceleration) of the curve.
-     * @return The instantaneous radius of curvature. Returns Double.POSITIVE_INFINITY if the curve is perfectly straight.
+     * @return The instantaneous radius of curvature. Returns Double.POSITIVE_INFINITY if the
+     * curve is perfectly straight.
      */
-    public static double calculateRadiusOfCurvature(Vector firstDerivative, Vector secondDerivative) {
+    public static double calculateRadiusOfCurvature(Vector firstDerivative,
+                                                    Vector secondDerivative) {
         double crossProductMag = firstDerivative.cross(secondDerivative).abs().getIn();
 
         // If the cross product is near zero, the derivatives are parallel, meaning the path is a
         // perfectly straight line with an infinite radius.
-        if (crossProductMag < 1e-6) { return Double.POSITIVE_INFINITY; }
+        if (crossProductMag < 1e-6) {return Double.POSITIVE_INFINITY;}
 
         double velocityMag = firstDerivative.getMag().getIn();
         double numerator = Math.pow(velocityMag, 3);
 
         return numerator / crossProductMag;
+    }
+
+    /**
+     * Estimates the derivative of curvature with respect to arc length (dK/ds)
+     * using a central finite difference method.
+     * <p>
+     * To prevent floating-point precision loss or computational instability on extremely
+     * long or short segments, the delta 't' (dt) is dynamically scaled based on the
+     * physical length of the curve to evaluate across a consistent physical distance.
+     *
+     * @param t The parametric progression [0.0, 1.0].
+     * @return The estimated rate of change of signed curvature in 1/in^2.
+     */
+    public double getCurvatureDerivative(double t) {
+        final double targetPhysicalDelta_in = 0.1;
+        double dt = targetPhysicalDelta_in / Math.max(this.length, 1e-6);
+
+        dt = Math.max(1e-5, Math.min(dt, 0.05));
+
+        double t1 = t - dt;
+        double t2 = t + dt;
+
+        // Shift the window to a forward or backward difference if we hit the [0, 1] bounds
+        if (t1 < 0.0) {
+            t1 = 0.0;
+            t2 = 2.0 * dt;
+        } else if (t2 > 1.0) {
+            t2 = 1.0;
+            t1 = 1.0 - 2.0 * dt;
+        }
+
+        double k1 = getSignedCurvature(t1);
+        double k2 = getSignedCurvature(t2);
+        double ds = segment.getPosition(t2).minus(segment.getPosition(t1)).getMag().getIn();
+
+        if (ds < 1e-6) {
+            return 0.0;
+        }
+
+        return (k2 - k1) / ds;
+    }
+
+    /**
+     * Calculates the signed curvature at a given parameter 't'.
+     * <p>
+     * Unlike the radius of curvature, signed curvature retains the direction of the bend
+     * (positive vs. negative). This is mathematically required to correctly calculate
+     * continuous derivatives across inflection points where the path changes bend direction.
+     *
+     * @param t The parametric progression [0.0, 1.0].
+     * @return The instantaneous signed curvature.
+     */
+    public double getSignedCurvature(double t) {
+        Vector v = segment.getFirstDerivative(t);
+        Vector a = segment.getSecondDerivative(t);
+
+        // The 2D cross product retains the sign (left vs right bend)
+        double cross = v.cross(a).getIn();
+        double vMag = v.getMag().getIn();
+
+        // Safety Check: Prevent division by zero if the robot is momentarily stationary
+        if (vMag < 1e-6) {
+            return 0.0;
+        }
+
+        // k = (x'y'' - y'x'') / ||v||^3
+        return cross / Math.pow(vMag, 3);
+    }
+
+    public PathPoint[] getPointLUT() {
+        return LUTpoints;
     }
 
     /**
@@ -213,9 +288,10 @@ public class PathSegment {
      * coordinates, and uses the 2D cross product of velocity and acceleration to determine
      * the bend direction.
      *
-     * @param firstDerivative The velocity vector of the segment at the closest point.
+     * @param firstDerivative  The velocity vector of the segment at the closest point.
      * @param secondDerivative The acceleration vector of the segment at the closest point.
-     * @return The principal unit normal Vector pointing toward the center of curvature. Returns (0, 0) if the cross product is zero.
+     * @return The principal unit normal Vector pointing toward the center of curvature. Returns
+     * (0, 0) if the cross product is zero.
      */
     public static Vector calculateArcNormal(Vector firstDerivative, Vector secondDerivative) {
         double vx = firstDerivative.getX().getIn();
@@ -223,7 +299,7 @@ public class PathSegment {
         double cross = firstDerivative.cross(secondDerivative).getIn();
 
         // If the path is perfectly straight, there is no normal vector
-        if (Math.abs(cross) < 1e-6) { return Vector.zero(); }
+        if (Math.abs(cross) < 1e-6) {return Vector.zero();}
 
         Vector normal;
         if (cross < 0) {

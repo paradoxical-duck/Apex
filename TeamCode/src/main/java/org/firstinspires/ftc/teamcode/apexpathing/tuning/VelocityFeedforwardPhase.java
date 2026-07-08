@@ -14,7 +14,7 @@ public class VelocityFeedforwardPhase extends TuningPhase {
         context.follower().teleOpDrive(0, 1.0, 0);
         context.sleep(1500);
 
-        double maxVel = Math.abs(context.follower().getVelocity().getPos().getX().getIn());
+        double maxVel = Math.abs(context.follower().getVelocity().getVec().getX().getIn());
         context.velocityFF = 1.0 / maxVel;
 
         context.stopDrive();
