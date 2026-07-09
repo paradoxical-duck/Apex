@@ -89,6 +89,12 @@ public class FollowerTuner extends LinearOpMode {
         };
 
         this.selectedPhaseIndex = 0;
+        for (int i = 0; i < phaseSelectorStatuses.length; i++) {
+            if (phaseSelectorStatuses[i].equals("[ ]")) {
+                this.selectedPhaseIndex = i;
+                break;
+            }
+        }
     }
 
     private TuningPhase phaseSelector() {
