@@ -98,13 +98,16 @@ public class FollowerTuner extends LinearOpMode {
     }
 
     private TuningPhase phaseSelector() {
-        telemetry.addLine("The Apex Pathing tuners are listed in order of execution below.");
         telemetry.addLine(
-                "[✓] = Already Tuned (you can select to retune)," +
-                        "[X] = Not available to tune (incomplete tuners before it)," +
-                        "[ ] = Next tuner to run. The selected phase has a '<' next to it."
+                "The Apex Pathing tuners are listed in order of execution below."
         );
-        telemetry.addLine("Use the DPad Up and Down buttons to cycle through phases, then press B to open the selected phase.");
+        telemetry.addLine(
+                "[✓] = Already Tuned (you can still select to retune)," +
+                        "[X] = Not available to tune (incomplete tuners before it)," +
+                        "[ ] = Next tuner to run. The cursor ('<') is here by default."
+        );
+        telemetry.addLine("Use the DPad Up and Down buttons to cycle through phases, " +
+                "then press B to open the selected phase.");
         telemetry.addLine();
 
         for (int i = 0; i < phases.length; i++) {
@@ -116,12 +119,13 @@ public class FollowerTuner extends LinearOpMode {
 
         if (gamepad1.dpadUpWasPressed()) {
             selectedPhaseIndex = (selectedPhaseIndex - 1 + phases.length) % phases.length;
-            while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) { // Don't allow selection of unavailable phases
+            // Don't allow selection of unavailable phases
+            while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) {
                 selectedPhaseIndex = (selectedPhaseIndex - 1 + phases.length) % phases.length;
             }
         } else if (gamepad1.dpadDownWasPressed()) {
             selectedPhaseIndex = (selectedPhaseIndex + 1) % phases.length;
-            while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) { // Don't allow selection of unavailable phases
+            while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) {
                 selectedPhaseIndex = (selectedPhaseIndex + 1) % phases.length;
             }
         } else if (gamepad1.bWasPressed()) {
