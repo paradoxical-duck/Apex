@@ -11,10 +11,20 @@ import java.io.FileReader;
 import controllers.PDSController.PDSCoefficients;
 import drivetrains.BaseDrivetrain;
 
-/** Constants loaded from the JSON file produced by the Apex tuners. */
+/**
+ * Class to hold constants for the Follower class. These constants are loaded from a JSON file
+ * created by the tuners. If the file does not exist or cannot be read, default values will be used.
+ *
+ * @author Sohum Arora 22985 Paraducks
+ * @author Dylan B. 18597 RoboClovers - Delta
+ * @author DrPixelCat
+ */
 public class FollowerConstants {
     private static FollowerConstants instance;
-
+    /* Note to developers:
+    If you want to add new constants, create the variable here and add it to the loadValues() and
+    toJson() methods. This will ensure that the new constants are loaded from the JSON file and
+    saved back to it. */
     public BaseDrivetrain.DrivetrainType drivetrainType =
             BaseDrivetrain.DrivetrainType.MECANUM;
     public PDSCoefficients headingCoeffs = new PDSCoefficients();
@@ -69,13 +79,9 @@ public class FollowerConstants {
             return;
         }
 
-        try {
-            drivetrainType = BaseDrivetrain.DrivetrainType.valueOf(
-                    json.optString("drivetrainType", "MECANUM")
-            );
-        } catch (IllegalArgumentException ignored) {
-            drivetrainType = BaseDrivetrain.DrivetrainType.MECANUM;
-        }
+        drivetrainType = BaseDrivetrain.DrivetrainType.valueOf(
+                json.optString("drivetrainType", "NAD")
+        );
 
         headingCoeffs.setkP(loadDouble(json, "headingP"));
         headingCoeffs.setkD(loadDouble(json, "headingD"));
@@ -90,9 +96,7 @@ public class FollowerConstants {
         angularKV = loadDouble(json, "angularKV");
         angularKA = loadDouble(json, "angularKA");
         velocityFeedbackGain = loadDouble(json, "velocityFeedbackGain");
-        angularVelocityFeedbackGain = json.has("AngularVelocityFeedbackGain")
-                ? loadDouble(json, "AngularVelocityFeedbackGain")
-                : loadDouble(json, "angularVelocityFeedbackGain");
+        angularVelocityFeedbackGain = loadDouble(json, "angularVelocityFeedbackGain");
         Kcentripetal = loadDouble(json, "Kcentripetal");
 
         forwardVelLimitIn = loadDouble(json, "forwardVelLimitIn");
@@ -118,7 +122,7 @@ public class FollowerConstants {
             json.put("angularKV", angularKV);
             json.put("angularKA", angularKA);
             json.put("velocityFeedbackGain", velocityFeedbackGain);
-            json.put("AngularVelocityFeedbackGain", angularVelocityFeedbackGain);
+            json.put("angularVelocityFeedbackGain", angularVelocityFeedbackGain);
             json.put("Kcentripetal", Kcentripetal);
             json.put("forwardVelLimitIn", forwardVelLimitIn);
             json.put("forwardAccelLimitIn", forwardAccelLimitIn);

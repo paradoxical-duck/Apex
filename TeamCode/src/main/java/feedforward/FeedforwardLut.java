@@ -35,9 +35,10 @@ public class FeedforwardLut {
     /**
      * Returns an interpolated feedforward target at the requested progression.
      * <p>
-     * Interpolation uses {@code y = y0 + t * (y1 - y0)}, where
-     * {@code t = (progression - d0) / (d1 - d0)}. Each kinematic component is blended
-     * independently.
+     * Interpolation uses {@code y = y0 + fraction * (y1 - y0)}, where
+     * {@code fraction = (progression - s0) / (s1 - s0)}. Each kinematic component is blended
+     * independently. The fraction is derived from the requested displacement/progression; it is
+     * not elapsed time or a path parameter.
      *
      * @param progression path progression/distance key to query
      * @return interpolated motion parameters for the follower
@@ -57,16 +58,17 @@ public class FeedforwardLut {
             if (progression <= params[i].getProgression()) {
                 MotionParameters params1 = params[i - 1];
                 MotionParameters params2 = params[i];
-                double d1 = params1.getProgression();
-                double d2 = params2.getProgression();
-                double denominator = d2 - d1;
+                double s0 = params1.getProgression();
+                double s1 = params2.getProgression();
+                double denominator = s1 - s0;
 
                 if (Math.abs(denominator) < 1e-9) {
                     return copyOf(params2);
                 }
 
-                double t = (progression - d1) / denominator;
-                return getFeedforwardParams(params1, t, params2, progression);
+                double interpolationFraction = (progression - s0) / denominator;
+                return getFeedforwardParams(
+                        params1, interpolationFraction, params2, progression);
             }
         }
         return copyOf(last);
@@ -76,22 +78,27 @@ public class FeedforwardLut {
      * Blends two neighboring rows of the lookup table.
      *
      * @param params1 lower/previous sample
-     * @param t interpolation factor between 0 and 1 in normal use
+     * @param interpolationFraction interpolation factor between 0 and 1 in normal use
      * @param params2 upper/next sample
      * @return linearly interpolated parameters
      */
     @NonNull
-    private static MotionParameters getFeedforwardParams(MotionParameters params1, double t,
+    private static MotionParameters getFeedforwardParams(MotionParameters params1,
+                                                         double interpolationFraction,
                                                          MotionParameters params2,
                                                          double progression) {
         double interpTransVel =
-                params1.getTangentialVel() + t * (params2.getTangentialVel() - params1.getTangentialVel());
+                params1.getTangentialVel() + interpolationFraction *
+                        (params2.getTangentialVel() - params1.getTangentialVel());
         double interpTransAccel =
-                params1.getTangentialAccel() + t * (params2.getTangentialAccel() - params1.getTangentialAccel());
+                params1.getTangentialAccel() + interpolationFraction *
+                        (params2.getTangentialAccel() - params1.getTangentialAccel());
         double interpAngVel =
-                params1.getAngularVel() + t * (params2.getAngularVel() - params1.getAngularVel());
+                params1.getAngularVel() + interpolationFraction *
+                        (params2.getAngularVel() - params1.getAngularVel());
         double interpAngAccel =
-                params1.getAngularAccel() + t * (params2.getAngularAccel() - params1.getAngularAccel());
+                params1.getAngularAccel() + interpolationFraction *
+                        (params2.getAngularAccel() - params1.getAngularAccel());
 
         return new MotionParameters(
                 interpTransVel,

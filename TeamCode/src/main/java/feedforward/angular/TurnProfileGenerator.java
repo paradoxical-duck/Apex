@@ -14,7 +14,6 @@ import paths.movements.Turn;
  */
 public class TurnProfileGenerator {
     private static final double EPSILON = 1e-9;
-    private static final int POWER_SEARCH_ITERATIONS = 40;
 
     /** Maximum angular velocity allowed for the turn, in radians per second. */
     private double omega_max;
@@ -79,9 +78,9 @@ public class TurnProfileGenerator {
         double signedTurn = turn.getStartPose().getHeading()
                 .getShortestAngleTo(turn.getEndPose().getHeading()).getRad();
         double direction = Math.signum(signedTurn);
-        double totalAngleRads = Math.abs(signedTurn);
+        double turnLengthRads = Math.abs(signedTurn);
 
-        if (totalAngleRads < 1e-9) {
+        if (turnLengthRads < 1e-9) {
             MotionParameters stationary = new MotionParameters();
             stationary.setDistAlongCurve(0.0);
             return new FeedforwardLut(new MotionParameters[]{stationary});
@@ -93,10 +92,12 @@ public class TurnProfileGenerator {
         int maxSteps = 200;
 
         // Calculate adaptive step size based on total sweep length
-        int steps = (int) Math.ceil(totalAngleRads / targetRadPerStep) + 1;
+        int steps = (int) Math.ceil(turnLengthRads / targetRadPerStep) + 1;
         steps = Math.max(minSteps, Math.min(maxSteps, steps));
 
-        double dTheta = totalAngleRads / (steps - 1);
+        // The profile's independent variable is angular arc length s, not time or the signed
+        // heading itself. Its LUT keys span s = 0 at the authored start through turnLengthRads.
+        double ds = turnLengthRads / (steps - 1);
         MotionParameters[] lut = new MotionParameters[steps];
         double profileVelocityLimit = getPowerLimitedVelocity(omega_max);
 
@@ -105,16 +106,17 @@ public class TurnProfileGenerator {
             lut[i] = new MotionParameters();
             lut[i].setAngularVel(profileVelocityLimit);
             lut[i].setTangentialVel(0.0); // No forward movement
-            lut[i].setDistAlongCurve(i * dTheta);
+            double s = i * ds;
+            lut[i].setDistAlongCurve(s);
         }
 
-        // Backward pass: w^2 = w_next^2 + 2 * alpha * dTheta limits how fast we may enter
+        // Backward pass: w^2 = w_next^2 + 2 * alpha * ds limits how fast we may enter
         // each remaining slice and still brake to zero by the end.
         lut[steps - 1].setAngularVel(0.0);
         for (int i = steps - 2; i >= 0; i--) {
             double nextW = lut[i + 1].getAngularVel();
-            double maxReachableW = findMaxPreviousVelocity(
-                    nextW, dTheta, profileVelocityLimit);
+            double maxReachableW = getMaxPreviousVelocity(
+                    nextW, ds, profileVelocityLimit);
             lut[i].setAngularVel(Math.min(lut[i].getAngularVel(), maxReachableW));
         }
 
@@ -124,7 +126,7 @@ public class TurnProfileGenerator {
             double prevW = lut[i - 1].getAngularVel();
             double availableAcceleration = getMaxForwardAcceleration(prevW);
             double maxReachableW =
-                    Math.sqrt((prevW * prevW) + (2.0 * availableAcceleration * dTheta));
+                    Math.sqrt((prevW * prevW) + (2.0 * availableAcceleration * ds));
             lut[i].setAngularVel(Math.min(lut[i].getAngularVel(), maxReachableW));
         }
 
@@ -134,7 +136,7 @@ public class TurnProfileGenerator {
             double currentW = lut[i].getAngularVel();
             double nextW = lut[i + 1].getAngularVel();
             double acceleration = ((nextW * nextW) - (currentW * currentW)) /
-                    (2.0 * dTheta);
+                    (2.0 * ds);
             lut[i].setAngularVel(direction * currentW);
             lut[i].setAngularAccel(direction * acceleration);
         }
@@ -182,33 +184,32 @@ public class TurnProfileGenerator {
     }
 
     /**
-     * Solves |kV*w - kA*d + kS| <= 1 for braking magnitude d.
+     * Returns the greatest velocity that can enter a segment and brake to {@code nextVelocity}.
+     *
+     * <p>The kinematic limit is {@code w^2 = wNext^2 + 2 * alphaMax * ds}. The motor-power
+     * limit follows from substituting that required deceleration into
+     * {@code -1 <= kV*w - kA*d + kS}. This is a quadratic in {@code w}, so a search is neither
+     * necessary nor desirable.</p>
      */
-    private double getMaxBrakingAcceleration(double angularVelocity) {
+    private double getMaxPreviousVelocity(double nextVelocity, double ds,
+                                          double velocityLimit) {
+        double kinematicLimit = Math.sqrt(
+                (nextVelocity * nextVelocity) + (2.0 * alpha_max * ds));
+        double reachableVelocity = Math.min(velocityLimit, kinematicLimit);
+
+        // With no acceleration feedforward term, braking does not consume modeled voltage.
         if (angularKA <= EPSILON) {
-            return alpha_max;
+            return reachableVelocity;
         }
-        double powerLimited =
-                (1.0 + headingKS + (angularKV * angularVelocity)) / angularKA;
-        return Math.min(alpha_max, Math.max(0.0, powerLimited));
-    }
 
-    private double findMaxPreviousVelocity(double nextVelocity, double displacement,
-                                           double velocityLimit) {
-        double low = nextVelocity;
-        double high = Math.max(nextVelocity, velocityLimit);
+        double dsKV = ds * angularKV;
+        double radicand =
+                (dsKV * dsKV)
+                        + (angularKA * angularKA * nextVelocity * nextVelocity)
+                        + (2.0 * angularKA * ds * (1.0 + headingKS));
+        double powerLimitedVelocity =
+                (dsKV + Math.sqrt(Math.max(0.0, radicand))) / angularKA;
 
-        for (int i = 0; i < POWER_SEARCH_ITERATIONS; i++) {
-            double candidate = (low + high) / 2.0;
-            double requiredDeceleration =
-                    ((candidate * candidate) - (nextVelocity * nextVelocity)) /
-                            (2.0 * displacement);
-            if (requiredDeceleration <= getMaxBrakingAcceleration(candidate) + EPSILON) {
-                low = candidate;
-            } else {
-                high = candidate;
-            }
-        }
-        return low;
+        return Math.min(reachableVelocity, powerLimitedVelocity);
     }
 }

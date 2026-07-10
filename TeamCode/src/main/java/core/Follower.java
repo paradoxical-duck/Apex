@@ -10,7 +10,6 @@ import controllers.PDSController;
 import controllers.movement.TurnController;
 import drivetrains.BaseDrivetrain;
 import drivetrains.BaseDrivetrainConstants;
-import drivetrains.CoaxialSwerve;
 import drivetrains.DualActuated;
 import drivetrains.Mecanum;
 import feedforward.MotionParameters;
@@ -39,7 +38,7 @@ public class Follower {
     private final BaseDrivetrain<?> drivetrain;
     private final BaseLocalizer<?> localizer;
 
-    private enum HolonomicDriveModel { MECANUM, SWERVE, ISOTROPIC }
+    private enum HolonomicDriveModel { ANISOTROPIC, ISOTROPIC }
 
     private final double headingTol; // Radians
     private final double distanceTol; // Inches
@@ -180,7 +179,7 @@ public class Follower {
         // region Turn Execution
         if (currentMovement instanceof Turn) {
             Turn turn = (Turn) currentMovement;
-            double headingError = currentHeading.getShortestAngleTo(targetHeading).getRad();
+            double headingError = targetHeading.getRad() - currentHeading.getRad();
 
             // Process angular callbacks
             processCallbacks(-1.0, currentHeading);
@@ -310,9 +309,9 @@ public class Follower {
             );
 
             // Charge the corrected lateral demand before allocating tangent power. Mecanum uses
-            // wheel-space L1 demand; swerve combines orthogonal translation using vector magnitude.
+            // wheel-space L1 demand; isotropic drives combine orthogonal translation by magnitude.
             double tangentBudget;
-            if (driveModel == HolonomicDriveModel.SWERVE) {
+            if (driveModel == HolonomicDriveModel.ISOTROPIC) {
                 tangentBudget = Math.sqrt(Math.max(0.0,
                         (availableMotorPower * availableMotorPower) -
                                 Math.pow(lateralCommand.getPowerDemand(), 2)));
@@ -442,15 +441,19 @@ public class Follower {
     }
 
     private HolonomicDriveModel getActiveHolonomicDriveModel() {
-        if (drivetrain instanceof CoaxialSwerve) return HolonomicDriveModel.SWERVE;
-        if (drivetrain instanceof Mecanum) return HolonomicDriveModel.MECANUM;
+        if (drivetrain instanceof Mecanum) return HolonomicDriveModel.ANISOTROPIC;
         if (drivetrain instanceof DualActuated) {
             if (!drivetrain.isHolonomic()) {
                 throw new IllegalStateException(
                         "Dual-actuated drivetrain is not in its holonomic state."
                 );
             }
-            return HolonomicDriveModel.MECANUM;
+            return HolonomicDriveModel.ANISOTROPIC;
+        }
+        if (!drivetrain.isHolonomic()) {
+            throw new IllegalStateException(
+                    "A holonomic allocation was requested while the drivetrain was non-holonomic."
+            );
         }
         return HolonomicDriveModel.ISOTROPIC;
     }
@@ -458,7 +461,7 @@ public class Follower {
     private AllocatedCommand allocateHolonomicStage(Vector fieldCommand, Angle currentHeading,
                                                      double availablePower,
                                                      HolonomicDriveModel driveModel) {
-        if (driveModel == HolonomicDriveModel.MECANUM) {
+        if (driveModel == HolonomicDriveModel.ANISOTROPIC) {
             return driveController.allocateMecanum(
                     fieldCommand, currentHeading, availablePower);
         }
