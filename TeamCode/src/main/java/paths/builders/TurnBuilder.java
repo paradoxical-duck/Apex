@@ -153,7 +153,8 @@ public class TurnBuilder {
 
         TurnProfileGenerator motionGen = new TurnProfileGenerator(
                 angularVelLimitRad,
-                angularAccelLimitRad
+                angularAccelLimitRad,
+                config
         );
 
         // Ensure TurnProfileGenerator generates a compatible LUT for the Turn object

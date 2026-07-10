@@ -58,6 +58,8 @@ public class FollowerTuner extends LinearOpMode {
             telemetry.addLine("Robot Initialized");
             telemetry.addLine("Tuning order:\n 1) Heading PDS \n 2) Translation PDS \n 3) " +
                     "Velocity FF \n 4) Max Lateral Accel");
+            telemetry.addData("AngularVelocityFeedbackGain",
+                    defaults.angularVelocityFeedbackGain);
             telemetry.addLine("Run the OpMode to proceed with the Heading Tuner");
 
             if (headingRun)

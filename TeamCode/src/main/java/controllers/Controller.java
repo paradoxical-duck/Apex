@@ -103,7 +103,8 @@ public abstract class Controller {
 
         // Initialize lastError on first run to prevent derivative kick from 0
         if (firstRun) {
-            deltaTime = 0.0;
+            lastError = actualError;
+            timeAnomalyDetected = true;
             firstRun = false;
         }
 

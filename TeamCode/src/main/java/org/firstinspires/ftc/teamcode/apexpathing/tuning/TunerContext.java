@@ -33,6 +33,11 @@ public class TunerContext {
     public double translationD;
     public double translationS;
     public double velocityFF;
+    public double translationalKA;
+    public double angularKV;
+    public double angularKA;
+    public double velocityFeedbackGain;
+    public double angularVelocityFeedbackGain;
     public double maxLateralAccel = 40.0;
     public double headingToleranceDeg;
     public double distanceToleranceIn;
@@ -50,6 +55,11 @@ public class TunerContext {
         translationD = defaults.translationalCoeffs.kD;
         translationS = defaults.translationalCoeffs.kS;
         velocityFF = defaults.translationalKV;
+        translationalKA = defaults.translationalKA;
+        angularKV = defaults.angularKV;
+        angularKA = defaults.angularKA;
+        velocityFeedbackGain = defaults.velocityFeedbackGain;
+        angularVelocityFeedbackGain = defaults.angularVelocityFeedbackGain;
         headingToleranceDeg = defaults.headingTolerance.getDeg();
         distanceToleranceIn = defaults.distanceTolerance.getIn();
         maxLateralAccel = defaults.strafeAccelerationLimit.getIn() > 10 ?
@@ -105,21 +115,46 @@ public class TunerContext {
         followerConstants.translationalCoeffs = new PDSCoefficients(translationP, translationD,
                 translationS, 0);
         followerConstants.translationalKV = velocityFF;
+        followerConstants.translationalKA = translationalKA;
+        followerConstants.angularKV = angularKV;
+        followerConstants.angularKA = angularKA;
+        followerConstants.velocityFeedbackGain = velocityFeedbackGain;
+        followerConstants.angularVelocityFeedbackGain = angularVelocityFeedbackGain;
         followerConstants.headingTolerance = Angle.fromDeg(headingToleranceDeg);
         followerConstants.distanceTolerance = Dist.fromIn(distanceToleranceIn);
         followerConstants.strafeAccelerationLimit = Dist.fromIn(maxLateralAccel);
     }
 
     public void saveConstantsToJson() {
+        updateFollowerConfig();
         String jsonPayload = "{\n" +
+                "  \"drivetrainType\": \"" + followerConstants.drivetrainType.name() + "\",\n" +
                 "  \"headingP\": " + headingP + ",\n" +
                 "  \"headingD\": " + headingD + ",\n" +
                 "  \"headingS\": " + headingS + ",\n" +
                 "  \"translationP\": " + translationP + ",\n" +
                 "  \"translationD\": " + translationD + ",\n" +
                 "  \"translationS\": " + translationS + ",\n" +
-                "  \"velocityFF\": " + velocityFF + ",\n" +
-                "  \"maxLateralAccel\": " + maxLateralAccel + "\n" +
+                "  \"translationKV\": " + velocityFF + ",\n" +
+                "  \"translationKA\": " + translationalKA + ",\n" +
+                "  \"angularKV\": " + angularKV + ",\n" +
+                "  \"angularKA\": " + angularKA + ",\n" +
+                "  \"velocityFeedbackGain\": " + velocityFeedbackGain + ",\n" +
+                "  \"AngularVelocityFeedbackGain\": " + angularVelocityFeedbackGain + ",\n" +
+                "  \"KC\": " + followerConstants.Kcentripetal + ",\n" +
+                "  \"headingToleranceDeg\": " + headingToleranceDeg + ",\n" +
+                "  \"distanceToleranceIn\": " + distanceToleranceIn + ",\n" +
+                "  \"forwardVelocityLimitInPerSec\": " +
+                followerConstants.forwardVelocityLimit.getIn() + ",\n" +
+                "  \"forwardAccelerationLimitInPerSec2\": " +
+                followerConstants.forwardAccelerationLimit.getIn() + ",\n" +
+                "  \"strafeVelocityLimitInPerSec\": " +
+                followerConstants.strafeVelocityLimit.getIn() + ",\n" +
+                "  \"strafeAccelerationLimitInPerSec2\": " + maxLateralAccel + ",\n" +
+                "  \"angularVelocityLimitRadPerSec\": " +
+                followerConstants.angularVelocityLimit.getRad() + ",\n" +
+                "  \"angularAccelerationLimitRadPerSec2\": " +
+                followerConstants.angularAccelerationLimit.getRad() + "\n" +
                 "}";
 
         try {
@@ -138,6 +173,11 @@ public class TunerContext {
             telemetry().addData("Translation D", translationD);
             telemetry().addData("Translation S", translationS);
             telemetry().addData("Velocity FF", velocityFF);
+            telemetry().addData("Angular kV", angularKV);
+            telemetry().addData("Angular kA", angularKA);
+            telemetry().addData("Velocity Feedback Gain", velocityFeedbackGain);
+            telemetry().addData("Angular Velocity Feedback Gain",
+                    angularVelocityFeedbackGain);
             telemetry().addData("Max Lateral Accel", maxLateralAccel);
             telemetry().update();
         }

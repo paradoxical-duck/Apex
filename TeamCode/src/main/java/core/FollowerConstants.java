@@ -33,6 +33,7 @@ public class FollowerConstants {
     public PDSCoefficients headingCoeffs = new PDSCoefficients();
     public PDSCoefficients translationalCoeffs = new PDSCoefficients();
     public double velocityFeedbackGain = 0.0;
+    public double angularVelocityFeedbackGain = 0.0;
     public double translationalKV = 0.0, translationalKA = 0.0;
     public double angularKV = 0.0, angularKA = 0.0;
     public double Kcentripetal = 0.0;
@@ -87,6 +88,12 @@ public class FollowerConstants {
                 translationalKA = json.optDouble("translationKA", translationalKA);
                 angularKV = json.optDouble("angularKV", angularKV);
                 angularKA = json.optDouble("angularKA", angularKA);
+                velocityFeedbackGain = json.optDouble(
+                        "velocityFeedbackGain", velocityFeedbackGain);
+                angularVelocityFeedbackGain = json.optDouble(
+                        "AngularVelocityFeedbackGain",
+                        json.optDouble("angularVelocityFeedbackGain",
+                                angularVelocityFeedbackGain));
                 Kcentripetal = json.optDouble("KC", Kcentripetal);
                 headingTolerance = Angle.fromDeg(json.optDouble("headingToleranceDeg", 1.0));
                 distanceTolerance = Dist.fromIn(json.optDouble("distanceToleranceIn", 0.5));
@@ -94,14 +101,15 @@ public class FollowerConstants {
                 forwardVelocityLimit = Dist.fromIn(json.optDouble(
                         "forwardVelocityLimitInPerSec", 0));
                 forwardAccelerationLimit = Dist.fromIn(json.optDouble(
-                        "forwardVelocityLimitInPerSec2", 0));
+                        "forwardAccelerationLimitInPerSec2",
+                        json.optDouble("forwardVelocityLimitInPerSec2", 0)));
                 strafeVelocityLimit = Dist.fromIn(json.optDouble(
                         "strafeVelocityLimitInPerSec", 0));
                 strafeAccelerationLimit = Dist.fromIn(json.optDouble(
                         "strafeAccelerationLimitInPerSec2", 0));
-                angularVelocityLimit = Angle.fromDeg(json.optDouble(
+                angularVelocityLimit = Angle.fromRad(json.optDouble(
                         "angularVelocityLimitRadPerSec", 0));
-                angularAccelerationLimit = Angle.fromDeg(json.optDouble(
+                angularAccelerationLimit = Angle.fromRad(json.optDouble(
                         "angularAccelerationLimitRadPerSec2", 0));
             } catch (Exception ignored) {
                 // defaults to 0 values everywhere
@@ -128,10 +136,53 @@ public class FollowerConstants {
             Angle headingTolerance,
             Dist distanceTolerance
     ) {
+        return inject(
+                drivetrainType,
+                headingCoeffs,
+                translationalCoeffs,
+                velocityFeedbackGain,
+                0.0,
+                translationalKV,
+                translationalKA,
+                angularKV,
+                angularKA,
+                Kcentripetal,
+                forwardVelocityLimit,
+                forwardAccelerationLimit,
+                strafeVelocityLimit,
+                strafeAccelerationLimit,
+                angularVelocityLimit,
+                angularAccelerationLimit,
+                headingTolerance,
+                distanceTolerance
+        );
+    }
+
+    public FollowerConstants inject(
+            DrivetrainType drivetrainType,
+            PDSCoefficients headingCoeffs,
+            PDSCoefficients translationalCoeffs,
+            double velocityFeedbackGain,
+            double angularVelocityFeedbackGain,
+            double translationalKV,
+            double translationalKA,
+            double angularKV,
+            double angularKA,
+            double Kcentripetal,
+            Dist forwardVelocityLimit,
+            Dist forwardAccelerationLimit,
+            Dist strafeVelocityLimit,
+            Dist strafeAccelerationLimit,
+            Angle angularVelocityLimit,
+            Angle angularAccelerationLimit,
+            Angle headingTolerance,
+            Dist distanceTolerance
+    ) {
         this.drivetrainType = drivetrainType;
         this.headingCoeffs = headingCoeffs;
         this.translationalCoeffs = translationalCoeffs;
         this.velocityFeedbackGain = velocityFeedbackGain;
+        this.angularVelocityFeedbackGain = angularVelocityFeedbackGain;
         this.translationalKV = translationalKV;
         this.translationalKA = translationalKA;
         this.angularKV = angularKV;

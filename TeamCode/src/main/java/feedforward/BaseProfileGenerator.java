@@ -256,6 +256,9 @@ public abstract class BaseProfileGenerator {
         for (int i = 0; i < points.length; i++) {
             lut[i] = new MotionParameters();
             lut[i].setTangentialVel(config.forwardVelocityLimit.getIn());
+            lut[i].setDistAlongCurve(
+                    path.getParametricPath().getLengthIn() - points[i].getDistanceToEnd_in()
+            );
         }
 
         // Backward pass: Naive deceleration
@@ -348,6 +351,9 @@ public abstract class BaseProfileGenerator {
             }
 
             lut[i] = new MotionParameters().setTangentialVel(maxVel);
+            lut[i].setDistAlongCurve(
+                    path.getParametricPath().getLengthIn() - points[i].getDistanceToEnd_in()
+            );
         }
         return lut;
     }
