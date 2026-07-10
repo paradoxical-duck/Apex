@@ -16,7 +16,7 @@ import java.util.Objects;
  * </p>
  *
  * @param <T> the type of drivetrain configuration this drivetrain uses, which must extend
- * {@link BaseDrivetrainConfig}
+ *            {@link BaseDrivetrainConfig}
  * @author Dylan B. - 18597 RoboClovers - Delta
  */
 public abstract class BaseDrivetrain<T extends BaseDrivetrainConfig<T>> {
@@ -37,7 +37,7 @@ public abstract class BaseDrivetrain<T extends BaseDrivetrainConfig<T>> {
      * store the configuration.
      *
      * @param config      your drivetrain configuration object that is a child of
-     * {@link BaseDrivetrainConfig}
+     *                    {@link BaseDrivetrainConfig}
      * @param hardwareMap the hardware map to use for initializing motors
      */
     public BaseDrivetrain(T config, HardwareMap hardwareMap) {
@@ -167,5 +167,6 @@ public abstract class BaseDrivetrain<T extends BaseDrivetrainConfig<T>> {
     /**
      * Stop all drivetrain actuators
      */
-    public void stop() { setPowers(0, 0, 0, 0); };
+    public void stop() {setPowers(0, 0, 0, 0);}
+
 }

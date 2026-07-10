@@ -2,6 +2,7 @@ package paths;
 
 import geometry.Angle;
 import geometry.Pose;
+import geometry.Vector;
 import paths.builders.Builder;
 import paths.builders.TankPathBuilder;
 import paths.heading.HolonomicInterpolationStyle;
@@ -27,6 +28,7 @@ public class FullAPIShowcase {
     public Path tangentForwardPath;
     public Path tankOptimalPath;
     public Path tangentCustomPath;
+    public Path facingPointPath;
     public Path nodeBasedPath;
 
     public FullAPIShowcase(PoseFactory.Mirror mirror) {
@@ -142,12 +144,27 @@ public class FullAPIShowcase {
 
         // ---------------------------------------------------------
 
-        // 8. NODE_BASED (C2 CUBIC SPLINE HEADING)
+        // 8. FACING_POINT
+        // Uses the same heading spline infrastructure as NODE_BASED, but populates it by aiming
+        // at one fixed field point throughout the path. The 90-degree offset points the robot's
+        // side at the point.
+        facingPointPath = Builder.holonomicPath(
+                        tangentCustomPath.getEndPose(),
+                        pose.of(45, -10),
+                        pose.of(30, 0)
+                )
+                .interpolateWith(HolonomicInterpolationStyle.FACING_POINT,
+                        Vector.of(30, 30, distUnit), Angle.fromDeg(90))
+                .profiledBuild();
+
+        // ---------------------------------------------------------
+
+        // 9. NODE_BASED (C2 CUBIC SPLINE HEADING)
         // Replaces the lambda function. Constructs a perfectly continuous heading spline
         // to control the orientation explicitly at specific distance percentages (s).
         nodeBasedPath = Builder.holonomicPath(
-                        tangentCustomPath.getEndPose(),
-                        pose.of(30, 0),
+                        facingPointPath.getEndPose(),
+                        pose.of(15, 0),
                         pose.of(0, 0, 0)
                 )
                 // Evaluates the shortest angular delta to prevent 360-degree snapback bugs
@@ -172,6 +189,7 @@ public class FullAPIShowcase {
                 tangentForwardPath,
                 tankOptimalPath,
                 tangentCustomPath,
+                facingPointPath,
                 nodeBasedPath
         };
     }

@@ -357,16 +357,16 @@ public class OTOS extends BaseLocalizer<OTOS.Config> {
         /**
          * @return the current pose estimate of the robot from the OTOS
          */
-        public Pose getPose() { return pose.of(xPosition, yPosition, hOrientation); }
+        public Pose getPose() {return pose.of(xPosition, yPosition, hOrientation);}
 
         /**
          * @return the current velocity estimate of the robot from the OTOS
          */
-        public Pose getVel() { return pose.of(xVelocity, yVelocity, hVelocity); }
+        public Pose getVel() {return pose.of(xVelocity, yVelocity, hVelocity);}
 
         /**
          * @return the current acceleration estimate of the robot from the OTOS
          */
-        public Pose getAccel() { return pose.of(xAcceleration, yAcceleration, hAcceleration); }
+        public Pose getAccel() {return pose.of(xAcceleration, yAcceleration, hAcceleration);}
     }
 }

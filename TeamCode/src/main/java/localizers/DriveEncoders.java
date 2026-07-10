@@ -3,19 +3,19 @@ package localizers;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import geometry.Angle;
 import geometry.Dist;
 import geometry.Pose;
 import geometry.Vector;
-import util.AngleUnit;
 
 /**
  * This is the localizer for 4 drive encoders and an IMU
  *
  * @author Topher F. - 23571 alumni
  */
-public class DriveEncoders extends BaseLocalizer<DriveEncoders.Config>{
+public class DriveEncoders extends BaseLocalizer<DriveEncoders.Config> {
     private final OdometryPod frontLeft, frontRight, backLeft, backRight;
     private final IMU imu;
 
@@ -35,19 +35,22 @@ public class DriveEncoders extends BaseLocalizer<DriveEncoders.Config>{
 
     @Override
     public void update() {
-        double deltaY = (frontLeft.getDeltaInches() + frontRight.getDeltaInches() + backLeft.getDeltaInches() + backRight.getDeltaInches()) / 4.0;
-        double deltaX = (-frontLeft.getDeltaInches() + frontRight.getDeltaInches() + backLeft.getDeltaInches() - backRight.getDeltaInches()) / 4.0;
+        double deltaY =
+                (frontLeft.getDeltaInches() + frontRight.getDeltaInches() + backLeft.getDeltaInches() + backRight.getDeltaInches()) / 4.0;
+        double deltaX =
+                (-frontLeft.getDeltaInches() + frontRight.getDeltaInches() + backLeft.getDeltaInches() - backRight.getDeltaInches()) / 4.0;
 
-        double oldYaw = pose.getHeading(AngleUnit.RAD);
-        double currentYaw = Angle.normalize(imu.getRobotYawPitchRollAngles().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS) - correction);
+        double oldYaw = pose.getHeading(util.AngleUnit.RAD);
+        double currentYaw =
+                Angle.normalize(imu.getRobotYawPitchRollAngles().getYaw() - correction);
         double deltaYaw = Angle.normalize(currentYaw - oldYaw);
-        double avgYaw = oldYaw + deltaYaw/2.0;
+        double avgYaw = oldYaw + deltaYaw / 2.0;
 
         pose = new Pose(
                 pose.getVec().plus(
                         new Vector(
-                                Dist.fromIn(deltaX* Math.cos(avgYaw) - (deltaY*Math.sin(avgYaw))),
-                                Dist.fromIn(deltaX*Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))
+                                Dist.fromIn(deltaX * Math.cos(avgYaw) - (deltaY * Math.sin(avgYaw))),
+                                Dist.fromIn(deltaX * Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))
                         )),
 
                 Angle.fromRad(currentYaw)
@@ -57,7 +60,8 @@ public class DriveEncoders extends BaseLocalizer<DriveEncoders.Config>{
 
     @Override
     public void setPose(Pose newPose) {
-        correction = imu.getRobotYawPitchRollAngles().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS) - newPose.getHeading(util.AngleUnit.RAD);
+        correction =
+                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - newPose.getHeading(util.AngleUnit.RAD);
         pose = newPose;
         backLeft.resetEncoder();
         frontLeft.resetEncoder();
@@ -79,7 +83,9 @@ public class DriveEncoders extends BaseLocalizer<DriveEncoders.Config>{
 
         public double inchConversion = 1.0;
 
-        public RevHubOrientationOnRobot hubOrientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD, RevHubOrientationOnRobot.UsbFacingDirection.UP);
+        public RevHubOrientationOnRobot hubOrientationOnRobot =
+                new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD
+                        , RevHubOrientationOnRobot.UsbFacingDirection.UP);
 
         @Override
         public BaseLocalizer<?> build(HardwareMap hardwareMap) {

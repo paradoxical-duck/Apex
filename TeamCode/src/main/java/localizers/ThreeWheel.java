@@ -18,12 +18,13 @@ public class ThreeWheel extends BaseLocalizer<ThreeWheel.Config> {
     public void update() {
         double oldYaw = pose.getHeading(AngleUnit.RAD);
 
-        double deltaYaw = (forwardPodLeft.getDeltaInches() - forwardPodRight.getDeltaInches()) / config.DPar.get(DistUnit.IN);
+        double deltaYaw =
+                (forwardPodLeft.getDeltaInches() - forwardPodRight.getDeltaInches()) / config.DPar.get(DistUnit.IN);
         double deltaX = strafePod.getDeltaInches() - deltaYaw * config.DPerp.get(DistUnit.IN);
         double deltaY = (forwardPodLeft.getDeltaInches() + forwardPodRight.getDeltaInches()) / 2.0;
 
         double yaw = Angle.normalize(oldYaw + deltaYaw);
-        double avgYaw = oldYaw + deltaYaw/2.0;
+        double avgYaw = oldYaw + deltaYaw / 2.0;
 
         pose = new Pose(
                 pose.getVec().plus(
@@ -31,7 +32,7 @@ public class ThreeWheel extends BaseLocalizer<ThreeWheel.Config> {
                                 Dist.fromIn(deltaX * Math.cos(avgYaw) - deltaY * Math.sin(avgYaw)),
                                 Dist.fromIn(deltaX * Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))
                         )),
-                    Angle.fromRad(yaw)
+                Angle.fromRad(yaw)
         );
         calculate(UpdateType.BOTH);
     }
@@ -60,7 +61,8 @@ public class ThreeWheel extends BaseLocalizer<ThreeWheel.Config> {
         public Dist DPerp = Dist.fromIn(1.0);
 
         // Default to facing logo facing forward and USB facing up
-        // Default 1 tick on the encoder to 1.0 inches (very wrong, will let user know if something is up)
+        // Default 1 tick on the encoder to 1.0 inches (very wrong, will let user know if
+        // something is up)
         public double inchConversion = 1.0;
 
         @Override
@@ -73,7 +75,9 @@ public class ThreeWheel extends BaseLocalizer<ThreeWheel.Config> {
         super(config);
 
         strafePod = new OdometryPod(hardwareMap, config.strafePodName, config.inchConversion);
-        forwardPodLeft = new OdometryPod(hardwareMap, config.forwardPodLeftName, config.inchConversion);
-        forwardPodRight = new OdometryPod(hardwareMap, config.forwardPodRightName, config.inchConversion);
+        forwardPodLeft = new OdometryPod(hardwareMap, config.forwardPodLeftName,
+                config.inchConversion);
+        forwardPodRight = new OdometryPod(hardwareMap, config.forwardPodRightName,
+                config.inchConversion);
     }
 }
