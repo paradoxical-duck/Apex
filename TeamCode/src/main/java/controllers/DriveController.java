@@ -34,14 +34,19 @@ public class DriveController {
         pds.reset();
     }
 
-    public Vector calculatePointToPoint(Vector targetPos, Vector currentPos, Angle currentHeading) {
+    public Vector calculatePointToPointMecanum(Vector targetPos, Vector currentPos, Angle currentHeading) {
+        Vector rawFieldVector = calculatePointToPoint(targetPos, currentPos);
+        return applyMecanumCorrections(rawFieldVector, currentHeading);
+    }
+
+    public Vector calculatePointToPoint(Vector targetPos, Vector currentPos) {
         Vector fieldError = targetPos.minus(currentPos);
         if (fieldError.getMag().getIn() < 0.01) return Vector.zero();
 
         double basePower = pds.calculateFromError(fieldError.getMag().getIn());
         Vector rawFieldVector = Vector.fromPolar(Dist.fromIn(basePower), fieldError.getTheta());
 
-        return applyMecanumCorrections(rawFieldVector, currentHeading);
+        return rawFieldVector;
     }
 
     public Vector applyMecanumCorrections(Vector rawFieldCentricPower, Angle currentHeading) {

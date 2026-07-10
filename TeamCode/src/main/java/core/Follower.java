@@ -206,9 +206,14 @@ public class Follower {
 
             // Hold xy position actively while turning
             if (errorMag > 0) {
-                Vector feedback = driveController.calculatePointToPoint(
-                        targetTurnPoseVec, currentPos, currentHeading
-                );
+                Vector feedback;
+                if (isMecanum) {
+                    feedback = driveController.calculatePointToPointMecanum(
+                            targetTurnPoseVec, currentPos, currentHeading
+                    );
+                } else {
+                    feedback = driveController.calculatePointToPoint(targetTurnPoseVec, currentPos);
+                }
                 drivetrain.drive(feedback.getX().getIn(), feedback.getY().getIn(), totalTurnPower);
             } else {
                 drivetrain.drive(0, 0, totalTurnPower);
