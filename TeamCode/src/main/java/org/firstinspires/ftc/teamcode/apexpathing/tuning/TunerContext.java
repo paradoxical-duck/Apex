@@ -52,7 +52,8 @@ public class TunerContext {
         velocityFF = defaults.translationalKV;
         headingToleranceDeg = defaults.headingTolerance.getDeg();
         distanceToleranceIn = defaults.distanceTolerance.getIn();
-        maxLateralAccel = defaults.strafeAccelerationLimit.getIn() > 10 ? defaults.strafeAccelerationLimit.getIn() : 40.0;
+        maxLateralAccel = defaults.strafeAccelerationLimit.getIn() > 10 ?
+                defaults.strafeAccelerationLimit.getIn() : 40.0;
     }
 
     public void setFollower(Follower follower) {
@@ -83,7 +84,8 @@ public class TunerContext {
     }
 
     public void driveWithGamepad() {
-        follower.teleOpDrive(-opMode.gamepad1.left_stick_x, opMode.gamepad1.left_stick_y, -opMode.gamepad1.right_stick_x);
+        follower.teleOpDrive(-opMode.gamepad1.left_stick_x, opMode.gamepad1.left_stick_y,
+                -opMode.gamepad1.right_stick_x);
     }
 
     public void stopDrive() {
@@ -100,7 +102,8 @@ public class TunerContext {
 
     public void updateFollowerConfig() {
         followerConstants.headingCoeffs = new PDSCoefficients(headingP, headingD, headingS, 0);
-        followerConstants.translationalCoeffs = new PDSCoefficients(translationP, translationD, translationS, 0);
+        followerConstants.translationalCoeffs = new PDSCoefficients(translationP, translationD,
+                translationS, 0);
         followerConstants.translationalKV = velocityFF;
         followerConstants.headingTolerance = Angle.fromDeg(headingToleranceDeg);
         followerConstants.distanceTolerance = Dist.fromIn(distanceToleranceIn);
@@ -122,7 +125,8 @@ public class TunerContext {
         try {
             File outputFolder = new File("/sdcard/FIRST");
             if (!outputFolder.exists()) outputFolder.mkdirs();
-            FileWriter fileWriter = new FileWriter(new File(outputFolder, "FollowerConstants.json"));
+            FileWriter fileWriter = new FileWriter(new File(outputFolder, "FollowerConstants" +
+                    ".json"));
             fileWriter.write(jsonPayload);
             fileWriter.close();
         } catch (IOException ignored) {

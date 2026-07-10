@@ -5,18 +5,18 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
- *  This is the helper class for the two and three wheel odometry localizers
+ * This is the helper class for the two and three wheel odometry localizers
  *
- *  @author Topher F. - 23571 alumni
+ * @author Topher F. - 23571 alumni
  */
 public class OdometryPod {
-    private String name;
+    private final String name;
 
     /**
      * This will be in the form ticks/inch
      */
     private double conversionToInches;
-    private DcMotorEx odometry;
+    private final DcMotorEx odometry;
 
     /**
      * This is used to calculate where we were last loop

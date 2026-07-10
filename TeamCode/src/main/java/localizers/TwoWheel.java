@@ -23,7 +23,8 @@ public class TwoWheel extends BaseLocalizer<TwoWheel.Config> {
     private final IMU imu;
 
     /**
-     * This variable is when we call setPose(), the yaw can be properly offset back, it's just the yaw the bot
+     * This variable is when we call setPose(), the yaw can be properly offset back, it's just
+     * the yaw the bot
      * was at prior to setPose() being called
      */
     private double correction = 0.0;
@@ -31,19 +32,20 @@ public class TwoWheel extends BaseLocalizer<TwoWheel.Config> {
     @Override
     public void update() {
         double oldYaw = pose.getHeading(util.AngleUnit.RAD);
-        double currentYaw = Angle.normalize(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - correction);
+        double currentYaw =
+                Angle.normalize(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - correction);
         double deltaYaw = Angle.normalize(currentYaw - oldYaw);
-        double avgYaw = oldYaw + deltaYaw/2.0;
-        double deltaX  = forwardPod.getDeltaInches() - config.DPar.get(DistUnit.IN) * deltaYaw;
+        double avgYaw = oldYaw + deltaYaw / 2.0;
+        double deltaX = forwardPod.getDeltaInches() - config.DPar.get(DistUnit.IN) * deltaYaw;
         double deltaY = strafePod.getDeltaInches() - config.DPerp.get(DistUnit.IN) * deltaYaw;
         pose = new Pose(
                 pose.getVec().plus(
-                new Vector(
-                        Dist.fromIn(deltaX* Math.cos(avgYaw) - (deltaY*Math.sin(avgYaw))),
-                        Dist.fromIn(deltaX*Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))
-                )),
+                        new Vector(
+                                Dist.fromIn(deltaX * Math.cos(avgYaw) - (deltaY * Math.sin(avgYaw))),
+                                Dist.fromIn(deltaX * Math.sin(avgYaw) + deltaY * Math.cos(avgYaw))
+                        )),
 
-               Angle.fromRad(currentYaw)
+                Angle.fromRad(currentYaw)
         );
         calculate(UpdateType.BOTH);
     }
@@ -51,7 +53,8 @@ public class TwoWheel extends BaseLocalizer<TwoWheel.Config> {
 
     @Override
     public void setPose(Pose newPose) {
-        correction = imu.getRobotYawPitchRollAngles().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS) - newPose.getHeading(util.AngleUnit.RAD);
+        correction =
+                imu.getRobotYawPitchRollAngles().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS) - newPose.getHeading(util.AngleUnit.RAD);
         pose = newPose;
         strafePod.resetEncoder();
         forwardPod.resetEncoder();
@@ -69,13 +72,16 @@ public class TwoWheel extends BaseLocalizer<TwoWheel.Config> {
 
         /**
          * DPerp is the distance from the center of the bot to the perpendicular dead wheel
-          */
+         */
         public Dist DPerp = Dist.fromIn(1.0);
 
         // Default to facing logo facing forward and USB facing up
-        public RevHubOrientationOnRobot hubOrientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD, RevHubOrientationOnRobot.UsbFacingDirection.UP);
+        public RevHubOrientationOnRobot hubOrientationOnRobot =
+                new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD
+                        , RevHubOrientationOnRobot.UsbFacingDirection.UP);
 
-        // Default 1 tick on the encoder to 1.0 inches (very wrong, will let user know if something is up)
+        // Default 1 tick on the encoder to 1.0 inches (very wrong, will let user know if
+        // something is up)
         public double inchConversion = 1.0;
 
         @Override

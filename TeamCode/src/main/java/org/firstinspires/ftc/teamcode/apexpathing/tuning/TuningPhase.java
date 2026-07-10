@@ -7,6 +7,7 @@ public abstract class TuningPhase {
         VELOCITY_FF,
         LATERAL_ACCEL
     }
+
     protected final TunerContext context;
     private final Phase phase;
     private boolean awaitingStart = true;

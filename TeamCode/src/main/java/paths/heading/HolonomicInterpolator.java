@@ -46,15 +46,32 @@ public class HolonomicInterpolator implements HeadingInterpolator {
         return 1.0 - (s / blendWindow);
     }
 
-    private double getTerminalErrorRad(Vector finalTangent) {
-        Angle finalBaseHeading;
-        if (style == HolonomicInterpolationStyle.TANGENT_CUSTOM) {
-            finalBaseHeading = finalTangent.getTheta().plus(customOffset);
-        } else if (style == HolonomicInterpolationStyle.NODE_BASED && headingSpline != null) {
-            finalBaseHeading = Angle.fromRad(headingSpline.evaluate(1.0));
-        } else {
-            finalBaseHeading = finalTangent.getTheta();
+    private boolean usesHeadingSpline() {
+        return (style == HolonomicInterpolationStyle.NODE_BASED ||
+                style == HolonomicInterpolationStyle.FACING_POINT) && headingSpline != null;
+    }
+
+    private Angle getBaseHeadingAtEnd(Vector finalTangent) {
+        switch (style) {
+            case CONSTANT_START_HEADING:
+                return startHeading;
+            case CONSTANT_END_HEADING:
+            case SMOOTH_START_TO_END:
+                return endHeading;
+            case TANGENT_FORWARD:
+                return finalTangent.getTheta();
+            case TANGENT_CUSTOM:
+                return finalTangent.getTheta().plus(customOffset);
+            case NODE_BASED:
+            case FACING_POINT:
+                return Angle.fromRad(headingSpline.evaluate(1.0));
+            default:
+                throw new IllegalStateException("Unhandled HolonomicHeadingStyle");
         }
+    }
+
+    private double getTerminalErrorRad(Vector finalTangent) {
+        Angle finalBaseHeading = getBaseHeadingAtEnd(finalTangent);
         return finalBaseHeading.getShortestAngleTo(endHeading).getRad();
     }
 
@@ -86,6 +103,7 @@ public class HolonomicInterpolator implements HeadingInterpolator {
                 baseHeading = pathTangent.getTheta().plus(customOffset);
                 break;
             case NODE_BASED:
+            case FACING_POINT:
                 baseHeading = Angle.fromRad(headingSpline.evaluate(pctTraveled));
                 break;
             default:
@@ -115,7 +133,7 @@ public class HolonomicInterpolator implements HeadingInterpolator {
             double diffRad = startHeading.getShortestAngleTo(endHeading).getRad();
             basePrime =
                     diffRad * (6.0 * pctTraveled - 6.0 * pctTraveled * pctTraveled) / pathLength;
-        } else if (style == HolonomicInterpolationStyle.NODE_BASED) {
+        } else if (usesHeadingSpline()) {
             basePrime = headingSpline.getFirstDerivative(pctTraveled) * (1.0 / pathLength);
         }
 
@@ -140,7 +158,7 @@ public class HolonomicInterpolator implements HeadingInterpolator {
             // Chain rule: d2(theta)/ds_traveled2 = d2(theta)/d(pct)2 * (1 / pathLength)^2
             double diffRad = startHeading.getShortestAngleTo(endHeading).getRad();
             baseDoublePrime = diffRad * (6.0 - 12.0 * pctTraveled) / (pathLength * pathLength);
-        } else if (style == HolonomicInterpolationStyle.NODE_BASED) {
+        } else if (usesHeadingSpline()) {
             baseDoublePrime =
                     headingSpline.getSecondDerivative(pctTraveled) * (1.0 / (pathLength * pathLength));
         }

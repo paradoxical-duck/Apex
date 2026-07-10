@@ -4,21 +4,26 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.apexpathing.tuning.HeadingPhase;
+import org.firstinspires.ftc.teamcode.apexpathing.tuning.TranslationPhase;
+import org.firstinspires.ftc.teamcode.apexpathing.tuning.TunerContext;
+import org.firstinspires.ftc.teamcode.apexpathing.tuning.TuningPhase;
+import org.firstinspires.ftc.teamcode.apexpathing.tuning.VelocityFeedforwardPhase;
+
 import core.ApexConfig;
 import core.Follower;
 import core.FollowerConstants;
 import drivetrains.BaseDrivetrainConfig;
 import localizers.BaseLocalizerConfig;
-import org.firstinspires.ftc.teamcode.apexpathing.tuning.HeadingPhase;
-import org.firstinspires.ftc.teamcode.apexpathing.tuning.TunerContext;
-import org.firstinspires.ftc.teamcode.apexpathing.tuning.TuningPhase;
-import org.firstinspires.ftc.teamcode.apexpathing.tuning.TranslationPhase;
-import org.firstinspires.ftc.teamcode.apexpathing.tuning.VelocityFeedforwardPhase;
 
 /**
- * Single unified automatic tuner capable of completely tuning a robot for Apex in minutes in just a single OpMode!
- * All you have to do is follow the telemetry instructions and press a couple buttons here and there.
- * Once you have run this tuner, your robot is fully tuned and ready to go Path its way to the Peaks.
+ * Single unified automatic tuner capable of completely tuning a robot for Apex in minutes in
+ * just a single OpMode!
+ * All you have to do is follow the telemetry instructions and press a couple buttons here and
+ * there.
+ * Once you have run this tuner, your robot is fully tuned and ready to go Path its way to the
+ * Peaks.
+ *
  * @author Sohum Arora 22985 Paraducks
  */
 @Configurable
@@ -42,23 +47,34 @@ public class FollowerTuner extends LinearOpMode {
         FollowerConstants defaults = baseConstants.followerConfig().getConstants();
         tunerContext.loadFrom(defaults);
 
-        boolean headingRun = defaults.headingCoeffs.kP != 0.0 || defaults.headingCoeffs.kD != 0.0 || defaults.headingCoeffs.kS != 0.0;
-        boolean translationRun = defaults.translationalCoeffs.kP != 0.0 || defaults.translationalCoeffs.kD != 0.0 || defaults.translationalCoeffs.kS != 0.0;
+        boolean headingRun =
+                defaults.headingCoeffs.kP != 0.0 || defaults.headingCoeffs.kD != 0.0 || defaults.headingCoeffs.kS != 0.0;
+        boolean translationRun =
+                defaults.translationalCoeffs.kP != 0.0 || defaults.translationalCoeffs.kD != 0.0 || defaults.translationalCoeffs.kS != 0.0;
         boolean velocityFFRun = defaults.translationalKV != 0.0;
         boolean accelRun = defaults.strafeAccelerationLimit.getIn() > 10.0;
 
         while (opModeInInit()) {
             telemetry.addLine("Robot Initialized");
-            telemetry.addLine("Tuning order:\n 1) Heading PDS \n 2) Translation PDS \n 3) Velocity FF \n 4) Max Lateral Accel");
+            telemetry.addLine("Tuning order:\n 1) Heading PDS \n 2) Translation PDS \n 3) " +
+                    "Velocity FF \n 4) Max Lateral Accel");
             telemetry.addLine("Run the OpMode to proceed with the Heading Tuner");
 
-            if (headingRun) telemetry.addLine("Heading tuner has already been run and values have been saved");
-            if (translationRun) telemetry.addLine("Translation tuner has already been run and values have been saved");
-            if (velocityFFRun) telemetry.addLine("Velocity FF tuner has already been run and values have been saved");
-            if (accelRun) telemetry.addLine("Max Lateral Accel tuner has already been run and values have been saved");
+            if (headingRun)
+                telemetry.addLine("Heading tuner has already been run and values have been saved");
+            if (translationRun)
+                telemetry.addLine("Translation tuner has already been run and values have been " +
+                        "saved");
+            if (velocityFFRun)
+                telemetry.addLine("Velocity FF tuner has already been run and values have been " +
+                        "saved");
+            if (accelRun)
+                telemetry.addLine("Max Lateral Accel tuner has already been run and values have " +
+                        "been saved");
 
             telemetry.addLine("A - Run the Translation Tuner if Heading Tuner has been run. ");
-            telemetry.addLine("B - Run the Velocity FF Tuner if Heading & Translation tuners have been run. ");
+            telemetry.addLine("B - Run the Velocity FF Tuner if Heading & Translation tuners have" +
+                    " been run. ");
             telemetry.addLine("Once all 3 complete, press A to run Max Lateral Accel Tuner. ");
             telemetry.addLine("WARNING: Do NOT run the tuners out of order");
 
@@ -125,10 +141,12 @@ public class FollowerTuner extends LinearOpMode {
 
     private final ApexConfig customConfig = new ApexConfig() {
         @Override
-        public BaseDrivetrainConfig<?> drivetrainConfig() { return baseConstants.drivetrainConfig(); }
+        public BaseDrivetrainConfig<?> drivetrainConfig() {return baseConstants.drivetrainConfig();}
+
         @Override
-        public BaseLocalizerConfig<?> localizerConfig() { return baseConstants.localizerConfig(); }
+        public BaseLocalizerConfig<?> localizerConfig() {return baseConstants.localizerConfig();}
+
         @Override
-        public FollowerConstants followerConfig() { return followerConstants; }
+        public FollowerConstants followerConfig() {return followerConstants;}
     };
 }

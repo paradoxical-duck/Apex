@@ -14,6 +14,7 @@ import geometry.ArcPose;
 import geometry.BSpline;
 import geometry.CubicSpline1D;
 import geometry.Dist;
+import geometry.PathPoint;
 import geometry.PathSegment;
 import geometry.Pose;
 import geometry.Vector;
@@ -34,6 +35,8 @@ import paths.movements.Path;
  * @author
  */
 public class HolonomicPathBuilder {
+    private static final double EPSILON = 1e-6;
+
     public Path path;
     private final Pose[] rawPoses;
     private final Pose startPose;
@@ -43,6 +46,7 @@ public class HolonomicPathBuilder {
     private HolonomicInterpolationStyle currentStyle =
             HolonomicInterpolationStyle.SMOOTH_START_TO_END;
     private Angle customOffset = null;
+    private Vector facingPoint = null;
     private final Function<Double, Angle> customFunction = null;
 
     private final List<Runnable> buildTasks = new ArrayList<>();
@@ -92,6 +96,58 @@ public class HolonomicPathBuilder {
         this.currentStyle = style;
         this.customOffset = angleOffset;
         return this;
+    }
+
+    /**
+     * Overrides the interpolation style, providing a fixed field point to face.
+     * Used primarily for {@link HolonomicInterpolationStyle#FACING_POINT}.
+     *
+     * @param style       The interpolation style to apply.
+     * @param pointToFace The field coordinate the robot should face.
+     * @return The current HolonomicPathBuilder instance for method chaining.
+     */
+    public HolonomicPathBuilder interpolateWith(HolonomicInterpolationStyle style,
+                                                Vector pointToFace) {
+        return interpolateWith(style, pointToFace, Angle.zero());
+    }
+
+    /**
+     * Overrides the interpolation style, providing a fixed field point and angular offset.
+     * Used primarily for {@link HolonomicInterpolationStyle#FACING_POINT}.
+     *
+     * @param style       The interpolation style to apply.
+     * @param pointToFace The field coordinate the robot should face.
+     * @param angleOffset The fixed angle to offset the facing direction by.
+     * @return The current HolonomicPathBuilder instance for method chaining.
+     */
+    public HolonomicPathBuilder interpolateWith(HolonomicInterpolationStyle style,
+                                                Vector pointToFace,
+                                                Angle angleOffset) {
+        this.currentStyle = style;
+        this.facingPoint = pointToFace != null ? pointToFace.copy() : null;
+        this.customOffset = angleOffset != null ? angleOffset : Angle.zero();
+        return this;
+    }
+
+    /**
+     * Points the robot at a fixed field coordinate for the full path.
+     *
+     * @param pointToFace The field coordinate the robot should face.
+     * @return The current HolonomicPathBuilder instance for method chaining.
+     */
+    public HolonomicPathBuilder facePoint(Vector pointToFace) {
+        return facePoint(pointToFace, Angle.zero());
+    }
+
+    /**
+     * Points the robot at a fixed field coordinate for the full path with a heading offset.
+     *
+     * @param pointToFace The field coordinate the robot should face.
+     * @param angleOffset The fixed angle to offset the facing direction by.
+     * @return The current HolonomicPathBuilder instance for method chaining.
+     */
+    public HolonomicPathBuilder facePoint(Vector pointToFace, Angle angleOffset) {
+        return interpolateWith(HolonomicInterpolationStyle.FACING_POINT, pointToFace, angleOffset);
     }
 
     /**
@@ -183,6 +239,113 @@ public class HolonomicPathBuilder {
         return this;
     }
 
+    private boolean isFinite(Vector vector) {
+        return vector != null &&
+                Double.isFinite(vector.getX().getIn()) &&
+                Double.isFinite(vector.getY().getIn());
+    }
+
+    private CubicSpline1D buildHeadingSpline(List<HeadingNode> nodes, String interpolationName) {
+        Collections.sort(nodes);
+
+        if (nodes.size() < 2) {
+            throw new IllegalStateException(interpolationName + " interpolation requires at least " +
+                    "a start and end heading.");
+        }
+
+        double[] x = new double[nodes.size()];
+        double[] y = new double[nodes.size()];
+
+        x[0] = nodes.get(0).pct;
+        y[0] = nodes.get(0).target.getRad();
+
+        // Unwrap shortest delta to ensure smooth continuous math across 2-PI bounds
+        for (int i = 1; i < nodes.size(); i++) {
+            x[i] = nodes.get(i).pct;
+            double shortestDelta =
+                    Angle.fromRad(y[i - 1]).getShortestAngleTo(nodes.get(i).target).getRad();
+            y[i] = y[i - 1] + shortestDelta;
+        }
+
+        return new CubicSpline1D(x, y);
+    }
+
+    private void appendFacingSample(ArrayList<Double> pcts, ArrayList<Angle> headings,
+                                    double pct, Angle heading) {
+        double clampedPct = Math.min(Math.max(pct, 0.0), 1.0);
+
+        if (!pcts.isEmpty()) {
+            int last = pcts.size() - 1;
+            double lastPct = pcts.get(last);
+            if (clampedPct < lastPct + EPSILON) {
+                if (Math.abs(clampedPct - lastPct) < EPSILON &&
+                        (heading != null || headings.get(last) == null)) {
+                    pcts.set(last, clampedPct);
+                    headings.set(last, heading);
+                }
+                return;
+            }
+        }
+
+        pcts.add(clampedPct);
+        headings.add(heading);
+    }
+
+    private List<HeadingNode> buildFacingPointNodes(PathSegment curve, Vector pointToFace,
+                                                    Angle angleOffset) {
+        double pathLength = curve.getLengthIn();
+        if (pathLength < EPSILON) {
+            throw new IllegalStateException("FACING_POINT interpolation requires a non-zero " +
+                    "path length.");
+        }
+
+        PathPoint[] samples = curve.getPointLUT();
+        ArrayList<Double> pcts = new ArrayList<>(samples.length);
+        ArrayList<Angle> headings = new ArrayList<>(samples.length);
+        Angle offset = angleOffset != null ? angleOffset : Angle.zero();
+
+        for (PathPoint sample : samples) {
+            double pct = 1.0 - (sample.getDistanceToEnd_in() / pathLength);
+            Vector toPoint = pointToFace.minus(sample.getLocation());
+            Angle heading = null;
+            if (toPoint.getMag().getIn() > EPSILON) {
+                heading = toPoint.getTheta().plus(offset);
+            }
+            appendFacingSample(pcts, headings, pct, heading);
+        }
+
+        Angle lastValid = null;
+        boolean hasValid = false;
+        for (int i = 0; i < headings.size(); i++) {
+            if (headings.get(i) != null) {
+                lastValid = headings.get(i);
+                hasValid = true;
+            } else if (lastValid != null) {
+                headings.set(i, lastValid);
+            }
+        }
+
+        if (!hasValid) {
+            throw new IllegalStateException("FACING_POINT interpolation cannot face a point that " +
+                    "matches every sampled path position.");
+        }
+
+        Angle nextValid = null;
+        for (int i = headings.size() - 1; i >= 0; i--) {
+            if (headings.get(i) != null) {
+                nextValid = headings.get(i);
+            } else if (nextValid != null) {
+                headings.set(i, nextValid);
+            }
+        }
+
+        ArrayList<HeadingNode> nodes = new ArrayList<>(pcts.size());
+        for (int i = 0; i < pcts.size(); i++) {
+            nodes.add(new HeadingNode(pcts.get(i), headings.get(i)));
+        }
+        return nodes;
+    }
+
     /**
      * Internal method to compile the B-Spline geometry, process arc poses, and initialize the
      * interpolator.
@@ -197,8 +360,11 @@ public class HolonomicPathBuilder {
             Pose currentPose = rawPoses[i];
 
             if (!intermediateWarningSent && Double.isFinite(currentPose.getHeading().getRad())) {
+                String headingSource = currentStyle == HolonomicInterpolationStyle.FACING_POINT ?
+                        "FACING_POINT derives headings from the point to face." :
+                        "Only the final pose heading controls the end heading.";
                 path.addWarning("APEX WARNING: Intermediate B-Spline headings are currently " +
-                        "ignored! Only the final pose heading controls the end heading.");
+                        "ignored! " + headingSource);
                 intermediateWarningSent = true;
             }
 
@@ -250,50 +416,13 @@ public class HolonomicPathBuilder {
         Angle endH = expectedEndPose.getHeading();
 
         CubicSpline1D spline = null;
-        if (currentStyle == HolonomicInterpolationStyle.NODE_BASED) {
-
-            // Automatically inject path boundary headings if the user didn't explicitly define them
-            boolean hasStart = false;
-            boolean hasEnd = false;
-            for (HeadingNode node : headingNodes) {
-                if (Math.abs(node.pct - 0.0) < 1e-6) hasStart = true;
-                if (Math.abs(node.pct - 1.0) < 1e-6) hasEnd = true;
-            }
-
-            if (!hasStart && Double.isFinite(startH.getRad())) {
-                headingNodes.add(new HeadingNode(0.0, startH));
-            }
-            if (!hasEnd && Double.isFinite(endH.getRad())) {
-                headingNodes.add(new HeadingNode(1.0, endH));
-            }
-
-            Collections.sort(headingNodes);
-
-            if (headingNodes.size() < 2) {
-                throw new IllegalStateException("NODE_BASED interpolation requires at least a " +
-                        "start and end heading.");
-            }
-
-            double[] x = new double[headingNodes.size()];
-            double[] y = new double[headingNodes.size()];
-
-            x[0] = headingNodes.get(0).pct;
-            y[0] = headingNodes.get(0).target.getRad();
-
-            // Unwrap shortest delta to ensure smooth continuous math across 2-PI bounds
-            for (int i = 1; i < headingNodes.size(); i++) {
-                x[i] = headingNodes.get(i).pct;
-                double shortestDelta =
-                        Angle.fromRad(y[i - 1]).getShortestAngleTo(headingNodes.get(i).target).getRad();
-                y[i] = y[i - 1] + shortestDelta;
-            }
-            spline = new CubicSpline1D(x, y);
-        }
-
         boolean missingParams =
                 (currentStyle == HolonomicInterpolationStyle.CONSTANT_START_HEADING && !Double.isFinite(startH.getRad())) ||
                         (currentStyle == HolonomicInterpolationStyle.CONSTANT_END_HEADING && !Double.isFinite(endH.getRad())) ||
                         (currentStyle == HolonomicInterpolationStyle.TANGENT_CUSTOM && (customOffset == null || !Double.isFinite(customOffset.getRad()))) ||
+                        (currentStyle == HolonomicInterpolationStyle.FACING_POINT &&
+                                (!isFinite(facingPoint) ||
+                                        (customOffset != null && !Double.isFinite(customOffset.getRad())))) ||
                         (currentStyle == HolonomicInterpolationStyle.SMOOTH_START_TO_END && (!Double.isFinite(startH.getRad()) || !Double.isFinite(endH.getRad())));
 
         if (missingParams) {
@@ -320,6 +449,31 @@ public class HolonomicPathBuilder {
                     currentStyle = HolonomicInterpolationStyle.TANGENT_FORWARD;
                 }
             }
+        }
+
+        if (currentStyle == HolonomicInterpolationStyle.NODE_BASED) {
+            ArrayList<HeadingNode> nodes = new ArrayList<>(headingNodes);
+
+            // Automatically inject path boundary headings if the user didn't explicitly define them
+            boolean hasStart = false;
+            boolean hasEnd = false;
+            for (HeadingNode node : nodes) {
+                if (Math.abs(node.pct - 0.0) < EPSILON) hasStart = true;
+                if (Math.abs(node.pct - 1.0) < EPSILON) hasEnd = true;
+            }
+
+            if (!hasStart && Double.isFinite(startH.getRad())) {
+                nodes.add(new HeadingNode(0.0, startH));
+            }
+            if (!hasEnd && Double.isFinite(endH.getRad())) {
+                nodes.add(new HeadingNode(1.0, endH));
+            }
+
+            spline = buildHeadingSpline(nodes, "NODE_BASED");
+        } else if (currentStyle == HolonomicInterpolationStyle.FACING_POINT) {
+            Angle facingOffset = customOffset != null ? customOffset : Angle.zero();
+            List<HeadingNode> facingNodes = buildFacingPointNodes(curve, facingPoint, facingOffset);
+            spline = buildHeadingSpline(facingNodes, "FACING_POINT");
         }
 
         HolonomicInterpolator interpolator = new HolonomicInterpolator(currentStyle, startH, endH

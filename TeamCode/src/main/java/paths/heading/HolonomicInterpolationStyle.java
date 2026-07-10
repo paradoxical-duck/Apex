@@ -46,5 +46,11 @@ public enum HolonomicInterpolationStyle {
      * The heading is controlled by custom user-defined nodes along the curve,
      * allowing for complex heading profiles completely independent of the path's shape.
      */
-    NODE_BASED
+    NODE_BASED,
+
+    /**
+     * The robot faces a fixed field point for the full path, with an optional angular offset
+     * for aiming a side or mechanism toward that point.
+     */
+    FACING_POINT
 }

@@ -44,9 +44,12 @@ public class LateralAccelerationPhase extends TuningPhase {
         Pose start = context.follower().getPose();
         Path testCurve = Builder.holonomicPath(
                 start,
-                new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(0, DistUnit.IN))), start.getHeading()),
-                new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(90))),
-                new Pose(start.getVec().plus(new Vector(Dist.of(0, DistUnit.IN), Dist.of(30, DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(180)))
+                new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(0,
+                        DistUnit.IN))), start.getHeading()),
+                new Pose(start.getVec().plus(new Vector(Dist.of(30, DistUnit.IN), Dist.of(30,
+                        DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(90))),
+                new Pose(start.getVec().plus(new Vector(Dist.of(0, DistUnit.IN), Dist.of(30,
+                        DistUnit.IN))), start.getHeading().plus(Angle.fromDeg(180)))
         ).profiledBuild();
 
         context.follower().follow(testCurve);
