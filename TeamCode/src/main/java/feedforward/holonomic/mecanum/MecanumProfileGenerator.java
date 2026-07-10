@@ -2,7 +2,7 @@ package feedforward.holonomic.mecanum;
 
 import core.FollowerConstants;
 import drivetrains.Mecanum;
-import drivetrains.Mecanum.MecanumDirectionalLut.DirectionalKinematics;
+import drivetrains.Mecanum.DirectionalLut.DirectionalKinematics;
 import feedforward.BaseProfileGenerator;
 import geometry.Angle;
 import geometry.PathPoint;
@@ -26,7 +26,7 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
     /** Tuned physical and feedforward limits for the robot. */
     private final FollowerConstants config;
     /** Direction-aware velocity/acceleration model for mecanum translation. */
-    private final Mecanum.MecanumDirectionalLut limitCalculator;
+    private final Mecanum.DirectionalLut limitCalculator;
 
     /**
      * Creates a mecanum profile generator for a path.
@@ -34,11 +34,11 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
     public MecanumProfileGenerator(FollowerConstants config, Path path) {
         super.path = path;
         this.config = config;
-        this.limitCalculator = new Mecanum.MecanumDirectionalLut(
-                config.forwardVelocityLimit.getIn(),
-                config.forwardAccelerationLimit.getIn(),
-                config.strafeVelocityLimit.getIn(),
-                config.strafeAccelerationLimit.getIn()
+        this.limitCalculator = new Mecanum.DirectionalLut(
+                config.forwardVelLimitIn,
+                config.forwardAccelLimitIn,
+                config.strafeVelLimitIn,
+                config.strafeAccelLimitIn
         );
     }
 
@@ -63,8 +63,8 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
         // Mecanum limits depend on robot-relative direction, so tangent and normal loads differ.
         double maxPhysicalVel = dirK.maxVel;
 
-        double effectiveAngVelLimit = Math.min(config.angularVelocityLimit.getRad(), maxAngVel);
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
+        double effectiveAngVelLimit = Math.min(config.angularVelLimitRad, maxAngVel);
+        double effectiveAngAccelLimit = Math.min(config.angularAccelLimitRad,
                 maxAngAccel);
 
         // Angular velocity limit: |f' * v| <= omega_max.
@@ -211,7 +211,7 @@ public class MecanumProfileGenerator extends BaseProfileGenerator {
                 finalTangent);
 
         double maxPhysicalAccel = dirK.maxAccel;
-        double effectiveAngAccelLimit = Math.min(config.angularAccelerationLimit.getRad(),
+        double effectiveAngAccelLimit = Math.min(config.angularAccelLimitRad,
                 maxAngAccel);
         if (effectiveAngAccelLimit < EPSILON) {
             return 0.0;

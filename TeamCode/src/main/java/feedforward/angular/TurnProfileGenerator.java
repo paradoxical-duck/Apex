@@ -1,7 +1,5 @@
 package feedforward.angular;
 
-import org.firstinspires.ftc.teamcode.apexpathing.Constants;
-
 import feedforward.FeedforwardLut;
 import feedforward.MotionParameters;
 import paths.movements.Turn;
@@ -18,8 +16,6 @@ public class TurnProfileGenerator {
     private double omega_max;
     /** Maximum angular acceleration allowed for the turn, in radians per second squared. */
     private double alpha_max;
-    /** Used here to read tuned heading feedforward coefficients. */
-    private final Constants constants = new Constants();
 
     /**
      * Creates a turn profile generator with angular limits.
@@ -47,12 +43,16 @@ public class TurnProfileGenerator {
      * make sure the profile can stop, then sweep forward to make sure it can accelerate from rest.
      *
      * @param turn turn movement to profile
+     * @param headingKS static friction feedforward for heading
+     * @param angularKV velocity feedforward for heading
+     * @param angularKA acceleration feedforward for heading
      * @return feedforward LUT containing angular velocity targets
      */
-    public FeedforwardLut generate(Turn turn) {
+    public FeedforwardLut generate(Turn turn, double headingKS, double angularKV, double angularKA) {
         // Calculate the absolute angular distance of the turn (Assumes radians)
-        double totalAngleRads =
-                Math.abs(turn.getEndPose().getHeading().getShortestAngleTo(turn.getStartPose().getHeading()).getRad());
+        double totalAngleRads = Math.abs(turn.getEndPose().getHeading().getShortestAngleTo(
+                turn.getStartPose().getHeading()).getRad()
+        );
 
         // Define structural bounds and target density (~2 degrees per step index)
         double targetRadPerStep = Math.toRadians(2.0);
@@ -89,8 +89,7 @@ public class TurnProfileGenerator {
             double prevW = lut[i - 1].getAngularVel();
 
             // From normalized power 1 ~= kS + kV*w + kA*alpha, solve for remaining alpha.
-            double dynamicAlpha = (
-                    1.0 - constants.followerConfig().headingCoeffs.kS - (constants.followerConfig().angularKV * prevW)) / constants.followerConfig().angularKA;
+            double dynamicAlpha = (1.0 - headingKS - (angularKV * prevW)) / angularKA;
 
             dynamicAlpha = Math.max(0.0, dynamicAlpha);
             double actualAlpha = Math.min(alpha_max, dynamicAlpha);

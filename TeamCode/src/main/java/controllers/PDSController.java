@@ -42,27 +42,24 @@ public class PDSController extends Controller {
         /**
          * Creates a PDSCoefficients object with all coefficients set to 0.
          */
-        public PDSCoefficients() {this(0.0, 0.0, 0.0, 0.0);}
+        public PDSCoefficients() { this(0.0, 0.0, 0.0, 0.0); }
+
+        public void setkP(double kP) { this.kP = kP; }
+        public void setkD(double kD) { this.kD = kD; }
+        public void setkS(double kS) { this.kS = kS; }
+        public void setkSDeadzone(double kSDeadzone) { this.kSDeadzone = kSDeadzone; }
     }
 
     // region Constructors and getters/setters
 
-    /**
-     * Creates a PDSController.
-     *
-     * @param coefficients the {@link PDSCoefficients} to use for the controller
-     */
-    public PDSController(PDSCoefficients coefficients) {this.setCoefficients(coefficients);}
+    /** @param coefficients the {@link PDSCoefficients} to use for the controller */
+    public PDSController(PDSCoefficients coefficients) { this.setCoefficients(coefficients); }
 
-    /**
-     * @param PDSCoefficients the {@link PDSCoefficients} to use for the controller
-     */
-    public void setCoefficients(PDSCoefficients PDSCoefficients) {this.coeffs = PDSCoefficients;}
+    /** @param PDSCoefficients the {@link PDSCoefficients} to use for the controller */
+    public void setCoefficients(PDSCoefficients PDSCoefficients) { this.coeffs = PDSCoefficients; }
 
-    /**
-     * @return the current {@link PDSCoefficients} being used by the controller
-     */
-    public PDSCoefficients getCoefficients() {return this.coeffs;}
+    /** @return the current {@link PDSCoefficients} being used by the controller */
+    public PDSCoefficients getCoefficients() { return this.coeffs; }
 
     @Override
     protected double computeOutput(double error, double lastError, double deltaTime) {
