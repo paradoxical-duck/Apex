@@ -39,8 +39,6 @@ public class TunerContext {
     public Telemetry getTelemetry() { return opMode.telemetry; }
     public Gamepad getGamepad() { return opMode.gamepad1; }
 
-    public void stopDrive() { follower.teleOpDrive(0, 0, 0); }
-
     public void driveOpenLoop(CharacterizationAxis axis, double power) {
         switch (axis) {
             case FORWARD:

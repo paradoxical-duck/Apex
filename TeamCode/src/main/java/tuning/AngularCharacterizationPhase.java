@@ -8,8 +8,7 @@ public class AngularCharacterizationPhase extends AxisCharacterizationPhase {
     }
 
     @Override
-    protected void applyResult(FeedforwardFit.Result result, double safeVelocity,
-                               double safeAcceleration) {
+    protected void applyResult(FeedforwardFit.Result result, double safeVelocity, double safeAcceleration) {
         context.constants.angularKV = result.kV;
         context.constants.angularKA = result.kA;
         context.constants.headingCoeffs = positionGains(result);

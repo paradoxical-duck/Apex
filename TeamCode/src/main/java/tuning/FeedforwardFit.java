@@ -7,10 +7,9 @@ import java.util.List;
 import controllers.PDSController.PDSCoefficients;
 
 /**
- * Robustly fits {@code power = kS sign(v) + kV v + kA a} with iteratively reweighted least
- * squares. The same identified plant model also supplies conservative initial feedback gains.
+ *
  */
-public final class FeedforwardFit {
+public class FeedforwardFit {
     public static final class Sample {
         final double power;
         final double velocity;

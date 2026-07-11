@@ -5,7 +5,10 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 
 import geometry.Pose;
 
-/** Verifies localizer sign/axis mapping before any constants are calculated. */
+/**
+ * Localizer verification before commencing tuning
+ * @author Sohum Arora 22985 Paraducks
+ */
 public class PreflightPhase extends TuningPhase {
     private static final double TEST_POWER = 0.22;
     private static final double TEST_SECONDS = 0.45;
