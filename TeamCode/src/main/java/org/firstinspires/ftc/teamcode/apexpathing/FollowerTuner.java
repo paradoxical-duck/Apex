@@ -6,10 +6,10 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import tuning.TunerContext;
 import tuning.TuningPhase;
-import tuning.HeadingPhase;
-import tuning.TranslationalPhase;
-import tuning.VelocityFeedforwardPhase;
-import tuning.MovementLimitsPhase;
+import tuning.AngularCharacterizationPhase;
+import tuning.ForwardCharacterizationPhase;
+import tuning.PreflightPhase;
+import tuning.StrafeCharacterizationPhase;
 
 import core.Follower;
 import geometry.Pose;
@@ -29,12 +29,13 @@ public class FollowerTuner extends LinearOpMode {
     private int selectedPhaseIndex = 0;
     private TuningPhase runningPhase = null;
 
-    enum Phase { HEADING_PDS, TRANSLATIONAL_PDS, VELOCITY_FEEDFORWARD, MOVEMENT_LIMITS }
+    enum Phase { PREFLIGHT, FORWARD_CHARACTERIZATION, STRAFE_CHARACTERIZATION,
+        ANGULAR_CHARACTERIZATION }
     private static final Phase[] phases = {
-            Phase.HEADING_PDS,
-            Phase.TRANSLATIONAL_PDS,
-            Phase.VELOCITY_FEEDFORWARD,
-            Phase.MOVEMENT_LIMITS
+            Phase.PREFLIGHT,
+            Phase.FORWARD_CHARACTERIZATION,
+            Phase.STRAFE_CHARACTERIZATION,
+            Phase.ANGULAR_CHARACTERIZATION
     };
 
     @Override
@@ -64,8 +65,10 @@ public class FollowerTuner extends LinearOpMode {
             if (runningPhase == null) {
                 continue; // OpMode stop was requested already, do nothing
             }
+            telemetry.clearAll();
             context.getFollower().update();
             boolean complete = runningPhase.update(gamepad1.aWasPressed(), gamepad1.bWasPressed());
+            telemetry.update();
             if (complete) {
                 runningPhase = null;
                 context.constants.drivetrainType = context.getFollower().getDrivetrain()
@@ -77,17 +80,21 @@ public class FollowerTuner extends LinearOpMode {
     }
 
     private void resetPhaseSelectionData() {
-        boolean headingIsTuned = context.constants.headingCoeffs.kP != 0.0;
-        boolean translationalIsTuned = context.constants.translationalCoeffs.kP != 0.0;
-        boolean velocityFFIsTuned = context.constants.translationalKV != 0.0;
-        boolean movementLimitsIsTuned = context.constants.strafeAccelLimitIn != 0.0;
+        boolean forwardIsTuned = context.constants.translationalKV > 0.0 &&
+                context.constants.translationalKA > 0.0 &&
+                context.constants.forwardVelLimitIn > 0.0;
+        boolean strafeIsTuned = context.constants.lateralCoeffs.kP > 0.0 &&
+                context.constants.strafeVelLimitIn > 0.0;
+        boolean angularIsTuned = context.constants.angularKV > 0.0 &&
+                context.constants.angularKA > 0.0 &&
+                context.constants.angularVelLimitRad > 0.0;
+        boolean holonomic = context.getFollower().getDrivetrain().isHolonomic();
 
-        String headingStatus = headingIsTuned ? "[✓]" : "[ ]"; // Heading is always available to tune first.
-        String transStatus = translationalIsTuned ? "[✓]" : (headingIsTuned ? "[ ]" : "[X]");
-        String velStatus = velocityFFIsTuned ? "[✓]" : (translationalIsTuned ? "[ ]" : "[X]");
-        String movementStatus = movementLimitsIsTuned ? "[✓]" : (velocityFFIsTuned ? "[ ]" : "[X]");
         this.phaseSelectorStatuses = new String[]{
-                headingStatus, transStatus, velStatus, movementStatus
+                "[ ]",
+                forwardIsTuned ? "[✓]" : "[ ]",
+                holonomic ? (strafeIsTuned ? "[✓]" : "[ ]") : "[N/A]",
+                angularIsTuned ? "[✓]" : "[ ]"
         };
 
         this.selectedPhaseIndex = 0;
@@ -105,7 +112,7 @@ public class FollowerTuner extends LinearOpMode {
         );
         telemetry.addLine(
                 "[✓] = Already Tuned (you can still select to retune)," +
-                        "[X] = Not available to tune (incomplete tuners before it)," +
+                        "[N/A] = Not applicable to this drivetrain," +
                         "[ ] = Next tuner to run. The cursor ('<') is here by default."
         );
         telemetry.addLine("Use the DPad Up and Down buttons to cycle through phases, " +
@@ -122,28 +129,32 @@ public class FollowerTuner extends LinearOpMode {
         if (gamepad1.dpadUpWasPressed()) {
             selectedPhaseIndex = (selectedPhaseIndex - 1 + phases.length) % phases.length;
             // Don't allow selection of unavailable phases
-            while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) {
+            while (!isSelectable(selectedPhaseIndex)) {
                 selectedPhaseIndex = (selectedPhaseIndex - 1 + phases.length) % phases.length;
             }
         } else if (gamepad1.dpadDownWasPressed()) {
             selectedPhaseIndex = (selectedPhaseIndex + 1) % phases.length;
-            while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) {
+            while (!isSelectable(selectedPhaseIndex)) {
                 selectedPhaseIndex = (selectedPhaseIndex + 1) % phases.length;
             }
         } else if (gamepad1.bWasPressed()) {
             Phase selectedPhase = phases[selectedPhaseIndex];
             switch (selectedPhase) {
-                case HEADING_PDS:
-                    return new HeadingPhase(context);
-                case TRANSLATIONAL_PDS:
-                    return new TranslationalPhase(context);
-                case VELOCITY_FEEDFORWARD:
-                    return new VelocityFeedforwardPhase(context);
-                case MOVEMENT_LIMITS:
-                    return new MovementLimitsPhase(context);
+                case PREFLIGHT:
+                    return new PreflightPhase(context);
+                case FORWARD_CHARACTERIZATION:
+                    return new ForwardCharacterizationPhase(context);
+                case STRAFE_CHARACTERIZATION:
+                    return new StrafeCharacterizationPhase(context);
+                case ANGULAR_CHARACTERIZATION:
+                    return new AngularCharacterizationPhase(context);
             }
         }
 
         return null; // Phase hasn't been selected yet
+    }
+
+    private boolean isSelectable(int index) {
+        return !phaseSelectorStatuses[index].equals("[N/A]");
     }
 }

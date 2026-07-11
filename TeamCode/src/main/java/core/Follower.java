@@ -89,6 +89,7 @@ public class Follower {
                 Dist.fromIn(this.constants.forwardVelLimitIn),
                 Dist.fromIn(this.constants.strafeVelLimitIn),
                 this.constants.translationalCoeffs,
+                this.constants.lateralCoeffs,
                 Dist.fromIn(0.25),
                 drivetrain instanceof Mecanum || drivetrain instanceof DualActuated
         );

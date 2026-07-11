@@ -1,0 +1,57 @@
+package tuning;
+
+import controllers.PDSController.PDSCoefficients;
+
+public class StrafeCharacterizationPhase extends AxisCharacterizationPhase {
+    public StrafeCharacterizationPhase(TunerContext context) {
+        super(context, CharacterizationAxis.STRAFE);
+    }
+
+    @Override
+    protected void applyResult(FeedforwardFit.Result result, double safeVelocity,
+                               double safeAcceleration) {
+        context.constants.lateralCoeffs = positionGains(result);
+        context.constants.strafeVelLimitIn = safeVelocity;
+        context.constants.strafeAccelLimitIn = safeAcceleration;
+    }
+
+    @Override
+    protected ManualParameter[] createManualParameters() {
+        PDSCoefficients pds = context.constants.lateralCoeffs;
+        return new ManualParameter[]{
+                new ManualParameter("Lateral kP", () -> pds.kP, value -> pds.kP = value,
+                        0.001, 0.0, 2.0),
+                new ManualParameter("Lateral kD", () -> pds.kD, value -> pds.kD = value,
+                        0.0005, 0.0, 2.0),
+                new ManualParameter("Lateral kS", () -> pds.kS, value -> pds.kS = value,
+                        0.002, 0.0, 0.5),
+                new ManualParameter("Strafe velocity limit", () -> context.constants.strafeVelLimitIn,
+                        value -> context.constants.strafeVelLimitIn = value,
+                        1.0, 1.0, 150.0),
+                new ManualParameter("Strafe acceleration limit", () -> context.constants.strafeAccelLimitIn,
+                        value -> context.constants.strafeAccelLimitIn = value,
+                        2.0, 1.0, 400.0)
+        };
+    }
+
+    @Override protected PDSCoefficients manualPositionCoefficients() {
+        return context.constants.lateralCoeffs;
+    }
+
+    @Override
+    protected double manualKV() {
+        if (context.constants.strafeVelLimitIn > 0.0 &&
+                context.constants.forwardVelLimitIn > 0.0) {
+            return context.constants.translationalKV *
+                    (context.constants.forwardVelLimitIn / context.constants.strafeVelLimitIn);
+        }
+        return context.constants.translationalKV;
+    }
+
+    @Override protected double manualVelocityFeedbackGain() {
+        return context.constants.velocityFeedbackGain;
+    }
+    @Override protected double manualVelocityLimit() {
+        return context.constants.strafeVelLimitIn;
+    }
+}

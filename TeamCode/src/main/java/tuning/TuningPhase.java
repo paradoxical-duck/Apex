@@ -35,7 +35,7 @@ public abstract class TuningPhase {
             case RUNNING:
                 boolean complete;
                 if (manualMode) {
-                    complete = manualUpdate();
+                    complete = manualUpdate(aWasPressed, bPressed);
                 } else {
                     complete = automaticUpdate();
                 }
@@ -62,12 +62,11 @@ public abstract class TuningPhase {
         context.getTelemetry().addLine(getPhaseName() + " phase initialized");
 
         if (manualTuneIsPossible() && autoTuneIsPossible()) {
-            context.getTelemetry().addData("Selected Mode:", manualMode ? "Manual" : "Automatic");
-            context.getTelemetry().addLine("A - Toggle mode");
-
             if (aWasPressed) {
                 manualMode = !manualMode;
             }
+            context.getTelemetry().addData("Selected Mode", manualMode ? "MANUAL" : "AUTOMATIC");
+            context.getTelemetry().addLine("A - Toggle automatic/manual");
         }
 
         context.getTelemetry().addLine("B - Start tuning");
@@ -112,6 +111,13 @@ public abstract class TuningPhase {
      * @return true if the manual tuning is complete, false otherwise
      */
     protected abstract boolean manualUpdate();
+
+    /** Manual update with edge-triggered face buttons. New phases should override this overload. */
+    protected boolean manualUpdate(boolean aWasPressed, boolean bWasPressed) {
+        return manualUpdate();
+    }
+
+    protected final boolean isManualMode() { return manualMode; }
 
     /**
      * This method should perform automatic tuning updates. It will be called repeatedly until it
