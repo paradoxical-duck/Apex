@@ -3,8 +3,8 @@ package tuning;
 import controllers.PDSController.PDSCoefficients;
 
 public class TurnPhase extends DrivePhase {
-    public TurnPhase(TuneContext context) {
-        super(context, TuneAxis.ANGULAR);
+    public TurnPhase(TunerContext context) {
+        super(context, TunerAxis.ANGULAR);
     }
 
     @Override
@@ -18,30 +18,30 @@ public class TurnPhase extends DrivePhase {
     }
 
     @Override
-    protected TuneValue[] values() {
+    protected TunerValue[] values() {
         PDSCoefficients pds = context.constants.headingCoeffs;
-        return new TuneValue[]{
-                new TuneValue("Heading kP", () -> pds.kP, value -> pds.kP = value,
+        return new TunerValue[]{
+                new TunerValue("Heading kP", () -> pds.kP, value -> pds.kP = value,
                         0.005, 0.0, 5.0),
-                new TuneValue("Heading kD", () -> pds.kD, value -> pds.kD = value,
+                new TunerValue("Heading kD", () -> pds.kD, value -> pds.kD = value,
                         0.001, 0.0, 5.0),
-                new TuneValue("Heading kS", () -> pds.kS, value -> pds.kS = value,
+                new TunerValue("Heading kS", () -> pds.kS, value -> pds.kS = value,
                         0.002, 0.0, 0.5),
-                new TuneValue("Angular kV", () -> context.constants.angularKV,
+                new TunerValue("Angular kV", () -> context.constants.angularKV,
                         value -> context.constants.angularKV = value,
                         0.002, 0.0, 2.0),
-                new TuneValue("Angular kA", () -> context.constants.angularKA,
+                new TunerValue("Angular kA", () -> context.constants.angularKA,
                         value -> context.constants.angularKA = value,
                         0.001, 0.0, 2.0),
-                new TuneValue("Angular velocity feedback",
+                new TunerValue("Angular velocity feedback",
                         () -> context.constants.angularVelocityFeedbackGain,
                         value -> context.constants.angularVelocityFeedbackGain = value,
                         0.002, 0.0, 5.0),
-                new TuneValue("Angular velocity limit",
+                new TunerValue("Angular velocity limit",
                         () -> context.constants.angularVelLimitRad,
                         value -> context.constants.angularVelLimitRad = value,
                         0.1, 0.1, 30.0),
-                new TuneValue("Angular acceleration limit",
+                new TunerValue("Angular acceleration limit",
                         () -> context.constants.angularAccelLimitRad,
                         value -> context.constants.angularAccelLimitRad = value,
                         0.2, 0.1, 100.0)

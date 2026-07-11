@@ -10,8 +10,7 @@ import java.io.FileWriter;
 
 import geometry.Pose;
 
-/** Guided localizer scale and direction check inside FollowerTuner. */
-public class LocalizerPhase extends TunePhase {
+public class LocalizerPhase extends TunerPhase {
     private enum Step { FORWARD_START, FORWARD_END, STRAFE_START, STRAFE_END,
         TURN_START, TURN_END, DONE }
 
@@ -31,7 +30,7 @@ public class LocalizerPhase extends TunePhase {
     private double lastHeading;
     private int selectedValue;
 
-    public LocalizerPhase(TuneContext context) { super(context); }
+    public LocalizerPhase(TunerContext context) { super(context); }
 
     @Override protected String name() { return "Localizer"; }
     @Override protected boolean hasManual() { return true; }

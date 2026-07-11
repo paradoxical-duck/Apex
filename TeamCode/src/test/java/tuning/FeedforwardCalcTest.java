@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 public class FeedforwardCalcTest {
     @Test
-    public void recoversBidirectionalPlantWithOutliers() {
+    public void fitsWithOutliers() {
         FeedforwardCalc fit = new FeedforwardCalc();
         for (int i = 1; i <= 240; i++) {
             double velocity = ((i % 48) - 24) * 0.45;
@@ -29,7 +29,7 @@ public class FeedforwardCalcTest {
     }
 
     @Test
-    public void derivesFiniteConservativeFeedbackGains() {
+    public void deriveFeedbackGains() {
         FeedforwardCalc.Result result = new FeedforwardCalc.Result(
                 0.08, 0.012, 0.0035, 0.95, 100);
         PDSCoefficients gains = result.positionGains(1.0);

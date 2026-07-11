@@ -12,6 +12,7 @@ import geometry.Pose;
 public abstract class FollowerMovement {
     private boolean started = false;
     private boolean ended = false;
+    FollowerMovement movement;
 
     /**
      * Gets the expected final pose of the robot after this movement is completed.
@@ -40,6 +41,6 @@ public abstract class FollowerMovement {
     public void setEnded(boolean ended) {
         this.ended = ended;
     }
-    public Path toPath(FollowerMovement movement) {return (Path) movement;}
-    public Turn toTurn(FollowerMovement movement) {return (Turn) movement;}
+    public Path toPath() {return (Path) movement;}
+    public Turn toTurn() {return (Turn) movement;}
 }

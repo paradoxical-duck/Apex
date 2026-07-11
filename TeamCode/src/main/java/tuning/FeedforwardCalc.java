@@ -6,9 +6,6 @@ import java.util.List;
 
 import controllers.PDSController.PDSCoefficients;
 
-/**
- *
- */
 public class FeedforwardCalc {
     public static final class Sample {
         final double power;

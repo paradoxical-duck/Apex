@@ -8,11 +8,7 @@ import controllers.PDSController;
 import controllers.PDSController.PDSCoefficients;
 import geometry.Pose;
 
-/**
- * Bidirectional ramp and step characterization for one drivetrain axis. This replaces the unsafe
- * single-step Ziegler-Nichols routine and identifies kS, kV, and kA from many samples.
- */
-public abstract class DrivePhase extends TunePhase {
+public abstract class DrivePhase extends TunerPhase {
     private static final double RAMP_SECONDS = 3.0;
     private static final double RAMP_MAX_POWER = 0.70;
     private static final double STEP_SECONDS = 1.25;
@@ -24,7 +20,7 @@ public abstract class DrivePhase extends TunePhase {
         STEP_POSITIVE, SETTLE_3, STEP_NEGATIVE, FINISHED
     }
 
-    protected final TuneAxis axis;
+    protected final TunerAxis axis;
     private final ElapsedTime timer = new ElapsedTime();
     private final FeedforwardCalc fit = new FeedforwardCalc();
     private TestState state;
@@ -36,13 +32,13 @@ public abstract class DrivePhase extends TunePhase {
     private double safeVelocity;
     private double safeAcceleration;
     private String failure;
-    private TuneValue[] manualParameters;
+    private TunerValue[] manualParameters;
     private int selectedTuneValue;
     private PDSController manualPositionController;
     private boolean manualDriving;
     private double manualOutput;
 
-    protected DrivePhase(TuneContext context, TuneAxis axis) {
+    protected DrivePhase(TunerContext context, TunerAxis axis) {
         super(context);
         this.axis = axis;
     }
@@ -59,7 +55,7 @@ public abstract class DrivePhase extends TunePhase {
             manualParameters = values();
             selectedTuneValue = 0;
             manualPositionController = new PDSController(manualGains());
-            if (axis == TuneAxis.ANGULAR) {
+            if (axis == TunerAxis.ANGULAR) {
                 manualPositionController.setAngularController();
             }
             manualDriving = false;
@@ -246,7 +242,7 @@ public abstract class DrivePhase extends TunePhase {
     protected abstract void saveResult(FeedforwardCalc.Result result,
                                         double safeVelocity, double safeAcceleration);
 
-    protected abstract TuneValue[] values();
+    protected abstract TunerValue[] values();
 
     protected abstract PDSCoefficients manualGains();
 
@@ -257,15 +253,15 @@ public abstract class DrivePhase extends TunePhase {
     protected abstract double speedLimit();
 
     protected double testTarget() {
-        return axis == TuneAxis.ANGULAR ? Math.toRadians(90.0) : 24.0;
+        return axis == TunerAxis.ANGULAR ? Math.toRadians(90.0) : 24.0;
     }
 
     protected double minTestSpeed() {
-        return axis == TuneAxis.ANGULAR ? 1.0 : 12.0;
+        return axis == TunerAxis.ANGULAR ? 1.0 : 12.0;
     }
 
     protected PDSCoefficients makeGains(FeedforwardCalc.Result result) {
-        double settlingSeconds = axis == TuneAxis.ANGULAR ? 0.75 : 1.00;
+        double settlingSeconds = axis == TunerAxis.ANGULAR ? 0.75 : 1.00;
         return result.positionGains(settlingSeconds);
     }
 
@@ -273,7 +269,7 @@ public abstract class DrivePhase extends TunePhase {
     protected void showResults() {
         if (isManual()) {
             context.getTelemetry().addLine("Manual values saved:");
-            for (TuneValue parameter : manualParameters) {
+            for (TunerValue parameter : manualParameters) {
                 context.getTelemetry().addData(parameter.getName(), "%.6f", parameter.get());
             }
             return;

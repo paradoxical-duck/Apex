@@ -8,9 +8,9 @@ import static org.junit.Assert.assertEquals;
 
 public class TuneValueTest {
     @Test
-    public void appliesFineAndCoarseStepsWithinBounds() {
+    public void adjustsWithinBounds() {
         AtomicReference<Double> value = new AtomicReference<>(0.5);
-        TuneValue parameter = new TuneValue(
+        TunerValue parameter = new TunerValue(
                 "test", value::get, value::set, 0.1, 0.0, 1.0);
 
         parameter.adjust(1, 0.1);

@@ -3,8 +3,8 @@ package tuning;
 import controllers.PDSController.PDSCoefficients;
 
 public class StrafePhase extends DrivePhase {
-    public StrafePhase(TuneContext context) {
-        super(context, TuneAxis.STRAFE);
+    public StrafePhase(TunerContext context) {
+        super(context, TunerAxis.STRAFE);
     }
 
     @Override
@@ -16,19 +16,19 @@ public class StrafePhase extends DrivePhase {
     }
 
     @Override
-    protected TuneValue[] values() {
+    protected TunerValue[] values() {
         PDSCoefficients pds = context.constants.lateralCoeffs;
-        return new TuneValue[]{
-                new TuneValue("Lateral kP", () -> pds.kP, value -> pds.kP = value,
+        return new TunerValue[]{
+                new TunerValue("Lateral kP", () -> pds.kP, value -> pds.kP = value,
                         0.001, 0.0, 2.0),
-                new TuneValue("Lateral kD", () -> pds.kD, value -> pds.kD = value,
+                new TunerValue("Lateral kD", () -> pds.kD, value -> pds.kD = value,
                         0.0005, 0.0, 2.0),
-                new TuneValue("Lateral kS", () -> pds.kS, value -> pds.kS = value,
+                new TunerValue("Lateral kS", () -> pds.kS, value -> pds.kS = value,
                         0.002, 0.0, 0.5),
-                new TuneValue("Strafe velocity limit", () -> context.constants.strafeVelLimitIn,
+                new TunerValue("Strafe velocity limit", () -> context.constants.strafeVelLimitIn,
                         value -> context.constants.strafeVelLimitIn = value,
                         1.0, 1.0, 150.0),
-                new TuneValue("Strafe acceleration limit", () -> context.constants.strafeAccelLimitIn,
+                new TunerValue("Strafe acceleration limit", () -> context.constants.strafeAccelLimitIn,
                         value -> context.constants.strafeAccelLimitIn = value,
                         2.0, 1.0, 400.0)
         };

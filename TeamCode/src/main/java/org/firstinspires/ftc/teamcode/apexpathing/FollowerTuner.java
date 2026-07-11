@@ -4,8 +4,8 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import tuning.TuneContext;
-import tuning.TunePhase;
+import tuning.TunerContext;
+import tuning.TunerPhase;
 import tuning.CheckPhase;
 import tuning.TurnPhase;
 import tuning.ForwardPhase;
@@ -28,11 +28,11 @@ import geometry.Pose;
 @Configurable
 @TeleOp(name = "Follower Tuner", group = "Apex Pathing Tuning")
 public class FollowerTuner extends LinearOpMode {
-    private final TuneContext context = new TuneContext(this);
+    private final TunerContext context = new TunerContext(this);
 
     private String[] phaseStatus;
     private int selectedPhase;
-    private TunePhase phase;
+    private TunerPhase phase;
 
     enum Phase { MOTOR, SETUP, LOCALIZER, FORWARD, STRAFE, TURN, SWERVE, CHECK }
     private static final Phase[] phases = {
@@ -114,7 +114,7 @@ public class FollowerTuner extends LinearOpMode {
         }
     }
 
-    private TunePhase selectPhase() {
+    private TunerPhase selectPhase() {
         telemetry.addLine(
                 "The Apex Pathing tuners are listed in order of execution below."
         );

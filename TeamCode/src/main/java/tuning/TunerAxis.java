@@ -2,8 +2,7 @@ package tuning;
 
 import geometry.Pose;
 
-/** Robot axes characterized independently by the tuner. */
-public enum TuneAxis {
+public enum TunerAxis {
     FORWARD("Forward", 0.50, 60.0),
     STRAFE("Strafe", 0.50, 60.0),
     ANGULAR("Angular", 0.04, Math.PI * 1.5);
@@ -12,8 +11,8 @@ public enum TuneAxis {
     private final double minSpeed;
     private final double maxTravel;
 
-    TuneAxis(String label, double minSpeed,
-                         double maxTravel) {
+    TunerAxis(String label, double minSpeed,
+              double maxTravel) {
         this.label = label;
         this.minSpeed = minSpeed;
         this.maxTravel = maxTravel;

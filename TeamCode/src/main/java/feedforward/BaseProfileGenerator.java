@@ -250,13 +250,13 @@ public abstract class BaseProfileGenerator {
     public FeedforwardLut generateQuick(FollowerConstants config) {
         Path path = (Path) this.path;
         PathPoint[] points = path.getGeneratedPoints();
-        MotionParameters[] lut = new MotionParameters[points.length];
+        ArrayList<MotionParameters> lut = new ArrayList<>(points.length);
 
         // Base pass: Max velocity everywhere
         for (int i = 0; i < points.length; i++) {
-            lut[i] = new MotionParameters();
-            lut[i].setTangentialVel(config.forwardVelLimitIn);
-            lut[i].setDistAlongCurve(
+            lut.get(i) = new MotionParameters();
+            lut.get(i).setTangentialVel(config.forwardVelLimitIn);
+            lut.get(i).setDistAlongCurve(
                     path.getParametricPath().getLengthIn() - points[i].getDistanceToEnd_in()
             );
         }

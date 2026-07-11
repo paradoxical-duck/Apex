@@ -8,9 +8,7 @@ import geometry.Pose;
 import geometry.Vector;
 import paths.builders.Builder;
 import paths.movements.FollowerMovement;
-
-/** Runs repeatable follower checks without changing constants. */
-public class CheckPhase extends TunePhase {
+public class CheckPhase extends TunerPhase {
     private enum Trial { FORWARD, RETURN, STRAFE, STRAFE_RETURN, TURN_90, TURN_0, DONE }
 
     private static final double TIMEOUT_SECONDS = 8.0;
@@ -24,7 +22,7 @@ public class CheckPhase extends TunePhase {
     private boolean holonomic;
     private boolean trialRunning;
 
-    public CheckPhase(TuneContext context) { super(context); }
+    public CheckPhase(TunerContext context) { super(context); }
 
     @Override protected String name() { return "Follower Check"; }
     @Override protected boolean hasManual() { return true; }

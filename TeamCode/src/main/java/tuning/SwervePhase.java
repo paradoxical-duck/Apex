@@ -8,20 +8,20 @@ import drivetrains.CoaxialSwerve;
 import geometry.Angle;
 
 /** Coaxial swerve offset and steering phase for FollowerTuner. */
-public class SwervePhase extends TunePhase {
+public class SwervePhase extends TunerPhase {
     private static final String[] MODULES = {"FL", "FR", "BL", "BR"};
     private static final double[] AUTO_TARGETS = {0.0, 90.0, -90.0, 0.0};
 
     private final ElapsedTime timer = new ElapsedTime();
     private CoaxialSwerve swerve;
     private PDSCoefficients gains;
-    private TuneValue[] values;
+    private TunerValue[] values;
     private int selected;
     private int autoTarget;
     private double targetDegrees;
     private double maxErrorDegrees;
 
-    public SwervePhase(TuneContext context) { super(context); }
+    public SwervePhase(TunerContext context) { super(context); }
 
     @Override protected String name() { return "Swerve"; }
     @Override protected boolean hasManual() { return true; }
@@ -38,16 +38,16 @@ public class SwervePhase extends TunePhase {
         maxErrorDegrees = 0.0;
         selected = 0;
         autoTarget = 0;
-        values = new TuneValue[]{
-                new TuneValue("Steering kP", () -> gains.kP, value -> gains.kP = value,
+        values = new TunerValue[]{
+                new TunerValue("Steering kP", () -> gains.kP, value -> gains.kP = value,
                         0.01, 0.0, 10.0),
-                new TuneValue("Steering kD", () -> gains.kD, value -> gains.kD = value,
+                new TunerValue("Steering kD", () -> gains.kD, value -> gains.kD = value,
                         0.002, 0.0, 10.0),
-                new TuneValue("Steering kS", () -> gains.kS, value -> gains.kS = value,
+                new TunerValue("Steering kS", () -> gains.kS, value -> gains.kS = value,
                         0.002, 0.0, 0.5),
-                new TuneValue("kS deadzone", () -> gains.kSDeadzone,
+                new TunerValue("kS deadzone", () -> gains.kSDeadzone,
                         value -> gains.kSDeadzone = value, 0.002, 0.0, Math.PI),
-                new TuneValue("Target degrees", () -> targetDegrees,
+                new TunerValue("Target degrees", () -> targetDegrees,
                         value -> targetDegrees = value, 5.0, -180.0, 180.0)
         };
         timer.reset();

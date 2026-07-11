@@ -9,19 +9,19 @@ import geometry.Pose;
  * Localizer verification before commencing tuning
  * @author Sohum Arora 22985 Paraducks
  */
-public class SetupPhase extends TunePhase {
+public class SetupPhase extends TunerPhase {
     private static final double TEST_POWER = 0.22;
     private static final double TEST_SECONDS = 0.45;
     private static final double MINIMUM_DELTA = 0.05;
 
     private final ElapsedTime timer = new ElapsedTime();
-    private TuneAxis[] axes;
+    private TunerAxis[] axes;
     private int index;
     private Pose start;
     private String failure;
     private boolean manualCheck;
 
-    public SetupPhase(TuneContext context) { super(context); }
+    public SetupPhase(TunerContext context) { super(context); }
 
     @Override protected String name() { return "Setup Check"; }
     @Override protected boolean hasManual() { return true; }
@@ -29,10 +29,10 @@ public class SetupPhase extends TunePhase {
     @Override
     protected void start() {
         axes = context.getFollower().getDrivetrain().isHolonomic()
-                ? new TuneAxis[]{TuneAxis.FORWARD,
-                TuneAxis.STRAFE, TuneAxis.ANGULAR}
-                : new TuneAxis[]{TuneAxis.FORWARD,
-                TuneAxis.ANGULAR};
+                ? new TunerAxis[]{TunerAxis.FORWARD,
+                TunerAxis.STRAFE, TunerAxis.ANGULAR}
+                : new TunerAxis[]{TunerAxis.FORWARD,
+                TunerAxis.ANGULAR};
         index = 0;
         failure = null;
         manualCheck = isManual();
@@ -73,7 +73,7 @@ public class SetupPhase extends TunePhase {
 
     @Override
     protected boolean runAuto(boolean aWasPressed, boolean bWasPressed) {
-        TuneAxis axis = axes[index];
+        TunerAxis axis = axes[index];
         context.driveAxis(axis, TEST_POWER);
         context.getTelemetry().addData("Testing", axis.label());
 
@@ -103,9 +103,9 @@ public class SetupPhase extends TunePhase {
         return false;
     }
 
-    private double otherMovement(TuneAxis expected, Pose delta) {
+    private double otherMovement(TunerAxis expected, Pose delta) {
         double largest = 0.0;
-        for (TuneAxis candidate : TuneAxis.values()) {
+        for (TunerAxis candidate : TunerAxis.values()) {
             if (candidate == expected) continue;
             largest = Math.max(largest, Math.abs(candidate.position(delta)));
         }

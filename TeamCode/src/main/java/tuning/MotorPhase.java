@@ -2,9 +2,7 @@ package tuning;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
-/** Checks each drive motor from inside the single follower tuner. */
-public class MotorPhase extends TunePhase {
+public class MotorPhase extends TunerPhase {
     private static final double POWER = 0.20;
     private static final String[] NAMES = {"Front Left", "Front Right", "Back Left", "Back Right"};
 
@@ -12,7 +10,7 @@ public class MotorPhase extends TunePhase {
     private int motor;
     private boolean driving;
 
-    public MotorPhase(TuneContext context) { super(context); }
+    public MotorPhase(TunerContext context) { super(context); }
 
     @Override protected String name() { return "Motor Check"; }
     @Override protected boolean hasManual() { return true; }

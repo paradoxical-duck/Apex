@@ -6,12 +6,12 @@ package tuning;
  * @author Sohum Arora - 22985 Paraducks
  * @author Dylan B. - 18597 RoboClovers - Delta
  */
-public abstract class TunePhase {
+public abstract class TunerPhase {
     private State state = State.INIT;
-    protected final TuneContext context;
+    protected final TunerContext context;
     private boolean manualMode;
 
-    protected TunePhase(TuneContext context) { this.context = context; }
+    protected TunerPhase(TunerContext context) { this.context = context; }
 
     enum State { INIT, RUNNING, COMPLETE }
 
