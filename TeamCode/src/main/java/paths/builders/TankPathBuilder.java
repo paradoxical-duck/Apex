@@ -1,10 +1,12 @@
 package paths.builders;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import core.FollowerConstants;
 import feedforward.FeedforwardLut;
+import feedforward.MotionParameters;
 import feedforward.tank.TankProfileGenerator;
 import geometry.Angle;
 import geometry.ArcPose;
@@ -37,12 +39,15 @@ public class TankPathBuilder {
      */
     public TankPathBuilder(Pose... poses) {
         this.path = new Path(Path.PathType.TANK);
+
         if (poses.length < 2) {
             throw new IllegalArgumentException("A B-Spline must be created with > 1 points!");
         }
+
         if (poses[0] instanceof ArcPose || poses[poses.length - 1] instanceof ArcPose) {
             throw new IllegalArgumentException("Endpoints can't be arcs!");
         }
+
         this.rawPoses = poses;
     }
 
@@ -66,9 +71,13 @@ public class TankPathBuilder {
     public TankPathBuilder addConstraint(PathConstraint constraint) {
         if (constraint.getS() >= 1.0 || constraint.getS() < 0.0) {
             constraint.setS(Math.min(Math.max(constraint.getS(), 0.0), 0.9));
-            path.addWarning("s must be within [0, 1) bounds! Normalized to " + constraint.getS() +
-                    " for safety.");
+            path.addWarning(
+                    "s must be within [0, 1) bounds! Normalized to "
+                            + constraint.getS()
+                            + " for safety."
+            );
         }
+
         path.addConstraint(constraint);
         return this;
     }
@@ -113,8 +122,9 @@ public class TankPathBuilder {
                 double radius = arcPose.getRadius().getIn();
 
                 if (radius < 2.0) {
-                    throw new IllegalArgumentException("ArcPose radius must be at least 2.0 " +
-                            "inches.");
+                    throw new IllegalArgumentException(
+                            "ArcPose radius must be at least 2.0 inches."
+                    );
                 }
 
                 Pose prevPose = rawPoses[i - 1];
@@ -127,12 +137,16 @@ public class TankPathBuilder {
                 double distToNext = vecToNext.getMag().getIn();
 
                 if (radius > distToLast || radius > distToNext) {
-                    throw new IllegalArgumentException("ArcPose radius exceeds distance to " +
-                            "adjacent control points.");
+                    throw new IllegalArgumentException(
+                            "ArcPose radius exceeds distance to adjacent control points."
+                    );
                 }
 
-                Vector p1Vec = arcPose.getVec().plus(vecToLast.times(radius / distToLast));
-                Vector p2Vec = arcPose.getVec().plus(vecToNext.times(radius / distToNext));
+                Vector p1Vec = arcPose.getVec()
+                        .plus(vecToLast.times(radius / distToLast));
+
+                Vector p2Vec = arcPose.getVec()
+                        .plus(vecToNext.times(radius / distToNext));
 
                 processedPoses.add(new Pose(p1Vec, arcPose.getHeading()));
                 processedPoses.add(currentPose);
@@ -145,6 +159,7 @@ public class TankPathBuilder {
         processedPoses.add(rawPoses[rawPoses.length - 1]);
 
         Vector[] vectors = new Vector[processedPoses.size()];
+
         for (int i = 0; i < processedPoses.size(); i++) {
             vectors[i] = processedPoses.get(i).getVec();
         }
@@ -157,12 +172,24 @@ public class TankPathBuilder {
 
         if (resolvedStyle == TankInterpolationStyle.TANGENT_OPTIMAL) {
             Angle startHeading = rawPoses[0].getHeading();
-            double fwdError =
-                    Math.abs(startHeading.getShortestAngleTo(startTangent.getTheta()).getRad());
-            double bwdError =
-                    Math.abs(startHeading.getShortestAngleTo(startTangent.getTheta().plus(Angle.fromRad(Math.PI))).getRad());
-            resolvedStyle = (bwdError < fwdError) ? TankInterpolationStyle.TANGENT_BACKWARD :
-                    TankInterpolationStyle.TANGENT_FORWARD;
+
+            double fwdError = Math.abs(
+                    startHeading
+                            .getShortestAngleTo(startTangent.getTheta())
+                            .getRad()
+            );
+
+            double bwdError = Math.abs(
+                    startHeading
+                            .getShortestAngleTo(
+                                    startTangent.getTheta().plus(Angle.fromRad(Math.PI))
+                            )
+                            .getRad()
+            );
+
+            resolvedStyle = bwdError < fwdError
+                    ? TankInterpolationStyle.TANGENT_BACKWARD
+                    : TankInterpolationStyle.TANGENT_FORWARD;
         }
 
         TankInterpolator interpolator = new TankInterpolator(resolvedStyle);
@@ -171,6 +198,7 @@ public class TankPathBuilder {
         Vector finalVec = vectors[vectors.length - 1];
         Vector finalTangent = curve.getFirstDerivative(1.0);
         Angle finalHeading = finalTangent.getTheta();
+
         if (resolvedStyle == TankInterpolationStyle.TANGENT_BACKWARD) {
             finalHeading = finalHeading.plus(Angle.fromRad(Math.PI));
         }
@@ -191,12 +219,15 @@ public class TankPathBuilder {
      */
     public Path quickBuild() {
         compileGeometry();
+
         FollowerConstants constants = FollowerConstants.getInstance();
         TankProfileGenerator generator = new TankProfileGenerator(constants, path);
 
         if (path.getConstraints().length == 0) {
-            path.addWarning("APEX WARNING: quickBuild() called on Tank drive with no constraints!" +
-                    " The naive profile will attempt maximum speed through all curves.");
+            path.addWarning(
+                    "APEX WARNING: quickBuild() called on Tank drive with no constraints! "
+                            + "The naive profile will attempt maximum speed through all curves."
+            );
         }
 
         path.setFeedforwardLut(generator.generateQuick(constants));
@@ -211,10 +242,14 @@ public class TankPathBuilder {
      */
     public Path profiledBuild() {
         compileGeometry();
+
         FollowerConstants constants = FollowerConstants.getInstance();
         TankProfileGenerator generator = new TankProfileGenerator(constants, path);
 
-        path.setFeedforwardLut(new FeedforwardLut(generator.generate()));
+        ArrayList<MotionParameters> lut = new ArrayList<>();
+        Collections.addAll(lut, generator.generate());
+
+        path.setFeedforwardLut(new FeedforwardLut(lut));
         return path;
     }
 }

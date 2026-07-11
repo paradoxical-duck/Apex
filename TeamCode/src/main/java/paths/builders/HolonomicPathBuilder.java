@@ -8,6 +8,7 @@ import java.util.function.Function;
 import core.FollowerConstants;
 import drivetrains.BaseDrivetrain;
 import feedforward.FeedforwardLut;
+import feedforward.MotionParameters;
 import feedforward.holonomic.mecanum.MecanumProfileGenerator;
 import feedforward.holonomic.swerve.SwerveProfileGenerator;
 import geometry.Angle;
@@ -188,7 +189,8 @@ public class HolonomicPathBuilder {
     public HolonomicPathBuilder addConstraint(PathConstraint constraint) {
         if (constraint.getS() >= 1.0 || constraint.getS() < 0.0) {
             constraint.setS(Math.min(Math.max(constraint.getS(), 0.0), 0.9));
-            path.addWarning("s must be within [0, 1] bounds! Normalized to " + constraint.getS() + " for safety.");
+            path.addWarning("s must be within [0, 1] bounds! Normalized to " +
+                    constraint.getS() + " for safety.");
         }
         path.addConstraint(constraint);
         return this;
@@ -219,18 +221,24 @@ public class HolonomicPathBuilder {
                 Angle startRad = rawPoses[0].getHeading();
                 Angle endRad = expectedEndPose.getHeading();
 
-                if (Double.isFinite(startRad.getRad()) && Double.isFinite(endRad.getRad())) {
+                if (Double.isFinite(startRad.getRad()) &&
+                        Double.isFinite(endRad.getRad())) {
                     double totalDiff = startRad.getShortestAngleTo(endRad).getRad();
                     double targetDiff = startRad.getShortestAngleTo(angle).getRad();
 
                     if (Math.abs(totalDiff) < 1e-6) {
                         if (Math.abs(targetDiff) > 1e-6) {
-                            throw new IllegalArgumentException("Angular callback out of bounds: " +
-                                    "The path's target heading is constant.");
+                            throw new IllegalArgumentException(
+                                    "Angular callback out of bounds: " +
+                                            "The path's target heading is constant."
+                            );
                         }
-                    } else if ((totalDiff * targetDiff < 0) || (Math.abs(targetDiff) > Math.abs(totalDiff))) {
-                        throw new IllegalArgumentException("Angular callback is outside the sweep" +
-                                " range of the start and end headings.");
+                    } else if ((totalDiff * targetDiff < 0) ||
+                            (Math.abs(targetDiff) > Math.abs(totalDiff))) {
+                        throw new IllegalArgumentException(
+                                "Angular callback is outside the sweep" +
+                                        " range of the start and end headings."
+                        );
                     }
                 }
             }
@@ -245,12 +253,15 @@ public class HolonomicPathBuilder {
                 Double.isFinite(vector.getY().getIn());
     }
 
-    private CubicSpline1D buildHeadingSpline(List<HeadingNode> nodes, String interpolationName) {
+    private CubicSpline1D buildHeadingSpline(List<HeadingNode> nodes,
+                                             String interpolationName) {
         Collections.sort(nodes);
 
         if (nodes.size() < 2) {
-            throw new IllegalStateException(interpolationName + " interpolation requires at least " +
-                    "a start and end heading.");
+            throw new IllegalStateException(
+                    interpolationName + " interpolation requires at least " +
+                            "a start and end heading."
+            );
         }
 
         double[] x = new double[nodes.size()];
@@ -263,15 +274,19 @@ public class HolonomicPathBuilder {
         for (int i = 1; i < nodes.size(); i++) {
             x[i] = nodes.get(i).pct;
             double shortestDelta =
-                    Angle.fromRad(y[i - 1]).getShortestAngleTo(nodes.get(i).target).getRad();
+                    Angle.fromRad(y[i - 1])
+                            .getShortestAngleTo(nodes.get(i).target)
+                            .getRad();
             y[i] = y[i - 1] + shortestDelta;
         }
 
         return new CubicSpline1D(x, y);
     }
 
-    private void appendFacingSample(ArrayList<Double> pcts, ArrayList<Angle> headings,
-                                    double pct, Angle heading) {
+    private void appendFacingSample(ArrayList<Double> pcts,
+                                    ArrayList<Angle> headings,
+                                    double pct,
+                                    Angle heading) {
         double clampedPct = Math.min(Math.max(pct, 0.0), 1.0);
 
         if (!pcts.isEmpty()) {
@@ -291,12 +306,14 @@ public class HolonomicPathBuilder {
         headings.add(heading);
     }
 
-    private List<HeadingNode> buildFacingPointNodes(PathSegment curve, Vector pointToFace,
+    private List<HeadingNode> buildFacingPointNodes(PathSegment curve,
+                                                    Vector pointToFace,
                                                     Angle angleOffset) {
         double pathLength = curve.getLengthIn();
         if (pathLength < EPSILON) {
-            throw new IllegalStateException("FACING_POINT interpolation requires a non-zero " +
-                    "path length.");
+            throw new IllegalStateException(
+                    "FACING_POINT interpolation requires a non-zero path length."
+            );
         }
 
         PathPoint[] samples = curve.getPointLUT();
@@ -305,17 +322,21 @@ public class HolonomicPathBuilder {
         Angle offset = angleOffset != null ? angleOffset : Angle.zero();
 
         for (PathPoint sample : samples) {
-            double pct = 1.0 - (sample.getDistanceToEnd_in() / pathLength);
+            double pct = 1.0 -
+                    (sample.getDistanceToEnd_in() / pathLength);
             Vector toPoint = pointToFace.minus(sample.getLocation());
             Angle heading = null;
+
             if (toPoint.getMag().getIn() > EPSILON) {
                 heading = toPoint.getTheta().plus(offset);
             }
+
             appendFacingSample(pcts, headings, pct, heading);
         }
 
         Angle lastValid = null;
         boolean hasValid = false;
+
         for (int i = 0; i < headings.size(); i++) {
             if (headings.get(i) != null) {
                 lastValid = headings.get(i);
@@ -326,11 +347,14 @@ public class HolonomicPathBuilder {
         }
 
         if (!hasValid) {
-            throw new IllegalStateException("FACING_POINT interpolation cannot face a point that " +
-                    "matches every sampled path position.");
+            throw new IllegalStateException(
+                    "FACING_POINT interpolation cannot face a point that " +
+                            "matches every sampled path position."
+            );
         }
 
         Angle nextValid = null;
+
         for (int i = headings.size() - 1; i >= 0; i--) {
             if (headings.get(i) != null) {
                 nextValid = headings.get(i);
@@ -340,9 +364,11 @@ public class HolonomicPathBuilder {
         }
 
         ArrayList<HeadingNode> nodes = new ArrayList<>(pcts.size());
+
         for (int i = 0; i < pcts.size(); i++) {
             nodes.add(new HeadingNode(pcts.get(i), headings.get(i)));
         }
+
         return nodes;
     }
 
@@ -351,7 +377,8 @@ public class HolonomicPathBuilder {
      * interpolator.
      */
     private void compileGeometry() {
-        ArrayList<Pose> processedPoses = new ArrayList<>(rawPoses.length * 2);
+        ArrayList<Pose> processedPoses =
+                new ArrayList<>(rawPoses.length * 2);
         processedPoses.add(rawPoses[0]);
 
         boolean intermediateWarningSent = false;
@@ -359,12 +386,17 @@ public class HolonomicPathBuilder {
         for (int i = 1; i < rawPoses.length - 1; i++) {
             Pose currentPose = rawPoses[i];
 
-            if (!intermediateWarningSent && Double.isFinite(currentPose.getHeading().getRad())) {
-                String headingSource = currentStyle == HolonomicInterpolationStyle.FACING_POINT ?
-                        "FACING_POINT derives headings from the point to face." :
-                        "Only the final pose heading controls the end heading.";
-                path.addWarning("APEX WARNING: Intermediate B-Spline headings are currently " +
-                        "ignored! " + headingSource);
+            if (!intermediateWarningSent &&
+                    Double.isFinite(currentPose.getHeading().getRad())) {
+                String headingSource =
+                        currentStyle == HolonomicInterpolationStyle.FACING_POINT
+                                ? "FACING_POINT derives headings from the point to face."
+                                : "Only the final pose heading controls the end heading.";
+
+                path.addWarning(
+                        "APEX WARNING: Intermediate B-Spline headings are currently " +
+                                "ignored! " + headingSource
+                );
                 intermediateWarningSent = true;
             }
 
@@ -373,26 +405,32 @@ public class HolonomicPathBuilder {
                 double radius = arcPose.getRadius().getIn();
 
                 if (radius < 2.0) {
-                    throw new IllegalArgumentException("ArcPose radius must be at least 2.0 " +
-                            "inches.");
+                    throw new IllegalArgumentException(
+                            "ArcPose radius must be at least 2.0 inches."
+                    );
                 }
 
                 Pose prevPose = rawPoses[i - 1];
                 Pose nextPose = rawPoses[i + 1];
 
-                Vector vecToLast = prevPose.getVec().minus(arcPose.getVec());
-                Vector vecToNext = nextPose.getVec().minus(arcPose.getVec());
+                Vector vecToLast =
+                        prevPose.getVec().minus(arcPose.getVec());
+                Vector vecToNext =
+                        nextPose.getVec().minus(arcPose.getVec());
 
                 double distToLast = vecToLast.getMag().getIn();
                 double distToNext = vecToNext.getMag().getIn();
 
                 if (radius > distToLast || radius > distToNext) {
-                    throw new IllegalArgumentException("ArcPose radius exceeds distance to " +
-                            "adjacent control points.");
+                    throw new IllegalArgumentException(
+                            "ArcPose radius exceeds distance to adjacent control points."
+                    );
                 }
 
-                Vector p1Vec = arcPose.getVec().plus(vecToLast.times(radius / distToLast));
-                Vector p2Vec = arcPose.getVec().plus(vecToNext.times(radius / distToNext));
+                Vector p1Vec = arcPose.getVec()
+                        .plus(vecToLast.times(radius / distToLast));
+                Vector p2Vec = arcPose.getVec()
+                        .plus(vecToNext.times(radius / distToNext));
 
                 processedPoses.add(new Pose(p1Vec, arcPose.getHeading()));
                 processedPoses.add(currentPose);
@@ -405,6 +443,7 @@ public class HolonomicPathBuilder {
         processedPoses.add(rawPoses[rawPoses.length - 1]);
 
         Vector[] vectors = new Vector[processedPoses.size()];
+
         for (int i = 0; i < processedPoses.size(); i++) {
             vectors[i] = processedPoses.get(i).getVec();
         }
@@ -416,18 +455,34 @@ public class HolonomicPathBuilder {
         Angle endH = expectedEndPose.getHeading();
 
         CubicSpline1D spline = null;
+
         boolean missingParams =
-                (currentStyle == HolonomicInterpolationStyle.CONSTANT_START_HEADING && !Double.isFinite(startH.getRad())) ||
-                        (currentStyle == HolonomicInterpolationStyle.CONSTANT_END_HEADING && !Double.isFinite(endH.getRad())) ||
-                        (currentStyle == HolonomicInterpolationStyle.TANGENT_CUSTOM && (customOffset == null || !Double.isFinite(customOffset.getRad()))) ||
-                        (currentStyle == HolonomicInterpolationStyle.FACING_POINT &&
+                (currentStyle ==
+                        HolonomicInterpolationStyle.CONSTANT_START_HEADING &&
+                        !Double.isFinite(startH.getRad())) ||
+                        (currentStyle ==
+                                HolonomicInterpolationStyle.CONSTANT_END_HEADING &&
+                                !Double.isFinite(endH.getRad())) ||
+                        (currentStyle ==
+                                HolonomicInterpolationStyle.TANGENT_CUSTOM &&
+                                (customOffset == null ||
+                                        !Double.isFinite(customOffset.getRad()))) ||
+                        (currentStyle ==
+                                HolonomicInterpolationStyle.FACING_POINT &&
                                 (!isFinite(facingPoint) ||
-                                        (customOffset != null && !Double.isFinite(customOffset.getRad())))) ||
-                        (currentStyle == HolonomicInterpolationStyle.SMOOTH_START_TO_END && (!Double.isFinite(startH.getRad()) || !Double.isFinite(endH.getRad())));
+                                        (customOffset != null &&
+                                                !Double.isFinite(customOffset.getRad())))) ||
+                        (currentStyle ==
+                                HolonomicInterpolationStyle.SMOOTH_START_TO_END &&
+                                (!Double.isFinite(startH.getRad()) ||
+                                        !Double.isFinite(endH.getRad())));
 
         if (missingParams) {
-            path.addWarning("APEX WARNING: " + currentStyle.name() + " is missing required " +
-                    "parameters! Falling back to TANGENT_FORWARD.");
+            path.addWarning(
+                    "APEX WARNING: " + currentStyle.name() +
+                            " is missing required parameters! " +
+                            "Falling back to TANGENT_FORWARD."
+            );
             currentStyle = HolonomicInterpolationStyle.TANGENT_FORWARD;
         }
 
@@ -437,51 +492,90 @@ public class HolonomicPathBuilder {
             } else {
                 // Resolve once here so the runtime interpolator only handles concrete headings.
                 Vector startTangent = curve.getFirstDerivative(0.0);
-                double fwdError =
-                        Math.abs(startH.getShortestAngleTo(startTangent.getTheta()).getRad());
-                double bwdError =
-                        Math.abs(startH.getShortestAngleTo(
-                                startTangent.getTheta().plus(Angle.fromRad(Math.PI))).getRad());
+
+                double fwdError = Math.abs(
+                        startH.getShortestAngleTo(
+                                startTangent.getTheta()
+                        ).getRad()
+                );
+
+                double bwdError = Math.abs(
+                        startH.getShortestAngleTo(
+                                startTangent.getTheta()
+                                        .plus(Angle.fromRad(Math.PI))
+                        ).getRad()
+                );
+
                 if (bwdError < fwdError) {
-                    currentStyle = HolonomicInterpolationStyle.TANGENT_CUSTOM;
+                    currentStyle =
+                            HolonomicInterpolationStyle.TANGENT_CUSTOM;
                     customOffset = Angle.fromRad(Math.PI);
                 } else {
-                    currentStyle = HolonomicInterpolationStyle.TANGENT_FORWARD;
+                    currentStyle =
+                            HolonomicInterpolationStyle.TANGENT_FORWARD;
                 }
             }
         }
 
         if (currentStyle == HolonomicInterpolationStyle.NODE_BASED) {
-            ArrayList<HeadingNode> nodes = new ArrayList<>(headingNodes);
+            ArrayList<HeadingNode> nodes =
+                    new ArrayList<>(headingNodes);
 
             // Automatically inject path boundary headings if the user didn't explicitly define them
             boolean hasStart = false;
             boolean hasEnd = false;
+
             for (HeadingNode node : nodes) {
-                if (Math.abs(node.pct - 0.0) < EPSILON) hasStart = true;
-                if (Math.abs(node.pct - 1.0) < EPSILON) hasEnd = true;
+                if (Math.abs(node.pct) < EPSILON) {
+                    hasStart = true;
+                }
+                if (Math.abs(node.pct - 1.0) < EPSILON) {
+                    hasEnd = true;
+                }
             }
 
             if (!hasStart && Double.isFinite(startH.getRad())) {
                 nodes.add(new HeadingNode(0.0, startH));
             }
+
             if (!hasEnd && Double.isFinite(endH.getRad())) {
                 nodes.add(new HeadingNode(1.0, endH));
             }
 
             spline = buildHeadingSpline(nodes, "NODE_BASED");
-        } else if (currentStyle == HolonomicInterpolationStyle.FACING_POINT) {
-            Angle facingOffset = customOffset != null ? customOffset : Angle.zero();
-            List<HeadingNode> facingNodes = buildFacingPointNodes(curve, facingPoint, facingOffset);
-            spline = buildHeadingSpline(facingNodes, "FACING_POINT");
+        } else if (currentStyle ==
+                HolonomicInterpolationStyle.FACING_POINT) {
+            Angle facingOffset =
+                    customOffset != null ? customOffset : Angle.zero();
+
+            List<HeadingNode> facingNodes =
+                    buildFacingPointNodes(
+                            curve,
+                            facingPoint,
+                            facingOffset
+                    );
+
+            spline = buildHeadingSpline(
+                    facingNodes,
+                    "FACING_POINT"
+            );
         }
 
-        HolonomicInterpolator interpolator = new HolonomicInterpolator(currentStyle, startH, endH
-                , customOffset, spline);
+        HolonomicInterpolator interpolator =
+                new HolonomicInterpolator(
+                        currentStyle,
+                        startH,
+                        endH,
+                        customOffset,
+                        spline
+                );
+
         interpolator.setPathLength(curve.getLengthIn());
+
         if (blendWindow != null) {
             interpolator.setBlendWindow(blendWindow.getIn());
         }
+
         path.setInterpolator(interpolator);
         path.setEndPose(expectedEndPose);
 
@@ -512,13 +606,20 @@ public class HolonomicPathBuilder {
         compileGeometry();
         FollowerConstants constants = FollowerConstants.getInstance();
 
-        if (constants.drivetrainType == BaseDrivetrain.DrivetrainType.COAXIAL_SWERVE) {
-            SwerveProfileGenerator generator = new SwerveProfileGenerator(constants, path);
-            path.setFeedforwardLut(new FeedforwardLut(generator.generate()));
+        ArrayList<MotionParameters> lut = new ArrayList<>();
+
+        if (constants.drivetrainType ==
+                BaseDrivetrain.DrivetrainType.COAXIAL_SWERVE) {
+            SwerveProfileGenerator generator =
+                    new SwerveProfileGenerator(constants, path);
+            Collections.addAll(lut, generator.generate());
         } else {
-            MecanumProfileGenerator generator = new MecanumProfileGenerator(constants, path);
-            path.setFeedforwardLut(new FeedforwardLut(generator.generate()));
+            MecanumProfileGenerator generator =
+                    new MecanumProfileGenerator(constants, path);
+            Collections.addAll(lut, generator.generate());
         }
+
+        path.setFeedforwardLut(new FeedforwardLut(lut));
 
         return path;
     }

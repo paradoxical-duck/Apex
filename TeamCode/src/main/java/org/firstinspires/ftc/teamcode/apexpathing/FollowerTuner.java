@@ -123,7 +123,7 @@ public class FollowerTuner extends LinearOpMode {
                         "[N/A] = Not applicable to this drivetrain," +
                         "[ ] = Next tuner to run. The cursor ('<') is here by default."
         );
-        telemetry.addLine("Use the DPad Up and Down buttons to cycle through phases, " +
+        telemetry.addLine("Use the Dpad Up and Down buttons to cycle through phases, " +
                 "then press B to open the selected phase.");
         telemetry.addLine();
 

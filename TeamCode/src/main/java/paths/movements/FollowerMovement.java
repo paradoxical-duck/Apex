@@ -41,6 +41,6 @@ public abstract class FollowerMovement {
     public void setEnded(boolean ended) {
         this.ended = ended;
     }
-    public Path toPath() {return (Path) movement;}
-    public Turn toTurn() {return (Turn) movement;}
+    public Path toPath() {return (Path) this;}
+    public Turn toTurn() {return (Turn) this;}
 }

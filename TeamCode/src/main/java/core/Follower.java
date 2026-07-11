@@ -108,9 +108,9 @@ public class Follower {
     private void processCallbacks(double s, Angle currentHeading) {
         Callback[] callbacks = null;
         if (currentMovement instanceof Path) {
-            callbacks = ((Path) currentMovement).getCallbacks();
+            callbacks = currentMovement.toPath().getCallbacks();
         } else if (currentMovement instanceof Turn) {
-            callbacks = ((Turn) currentMovement).getCallbacks();
+            callbacks = currentMovement.toTurn().getCallbacks();
         }
 
         if (callbacks != null) {
@@ -179,7 +179,7 @@ public class Follower {
 
         // region Turn Execution
         if (currentMovement instanceof Turn) {
-            Turn turn = (Turn) currentMovement;
+            Turn turn = currentMovement.toTurn();
             double headingError = targetHeading.getRad() - currentHeading.getRad();
 
             // Process angular callbacks
@@ -254,7 +254,7 @@ public class Follower {
             double kappa = segment.getSignedCurvature(t);
             double dKappa = segment.getCurvatureDerivative(t);
 
-            Path path = (Path) currentMovement;
+            Path path = currentMovement.toPath();
             boolean isProfiled = path.isProfiled();
             double distanceTraveled = path.getParametricPath().getLengthIn() - s;
             MotionParameters targets = isProfiled ?
@@ -390,7 +390,7 @@ public class Follower {
             Vector velVec = segment.getFirstDerivative(t);
             Vector robotVel = localizer.getVel().getVec();
 
-            Path path = (Path) currentMovement;
+            Path path = currentMovement.toPath();
             Angle headingTarg = path.getInterpolator().getHeadingTarg(s, velVec,
                     segment.getFirstDerivative(1.0));
             double distanceTraveled = path.getParametricPath().getLengthIn() - s;
@@ -492,14 +492,14 @@ public class Follower {
         this.targetHeading = movement.getEndPose().getHeading();
 
         if (movement instanceof Turn) {
-            Turn turn = (Turn) currentMovement;
+            Turn turn = currentMovement.toTurn();
             this.targetTurnPoseVec = turn.getStartPose().getVec();
             double signedTurn = turn.getStartPose().getHeading()
                     .getShortestAngleTo(turn.getEndPose().getHeading()).getRad();
             this.turnDirection = Math.signum(signedTurn);
             this.turnTotalDisplacement = Math.abs(signedTurn);
         } else if (movement instanceof Path) {
-            Path pathSegmentMove = (Path) currentMovement;
+            Path pathSegmentMove = currentMovement.toPath();
             this.segment = pathSegmentMove.getParametricPath();
             if (drivetrain instanceof DualActuated) {
                 if (pathSegmentMove.getPathType() == Path.PathType.HOLONOMIC) {
