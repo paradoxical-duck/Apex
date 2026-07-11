@@ -2,6 +2,8 @@ package feedforward;
 
 import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
+
 /**
  * Linear lookup table for generated feedforward states.
  * <p>
@@ -11,19 +13,19 @@ import androidx.annotation.NonNull;
  */
 public class FeedforwardLut {
     /** Ordered samples of the path-relative state [v, a, omega, alpha]. */
-    private final MotionParameters[] params;
+    private final ArrayList<MotionParameters> params;
 
     /**
      * Wraps generated profile samples.
      *
      * @param generatedParams ordered motion profile samples
      */
-    public FeedforwardLut(MotionParameters[] generatedParams) {
-        if (generatedParams == null || generatedParams.length == 0) {
+    public FeedforwardLut(ArrayList<MotionParameters> generatedParams) {
+        if (generatedParams == null || generatedParams.toArray().length == 0) {
             throw new IllegalArgumentException("A feedforward LUT requires at least one sample.");
         }
-        for (int i = 1; i < generatedParams.length; i++) {
-            if (generatedParams[i].getProgression() < generatedParams[i - 1].getProgression()) {
+        for (int i = 1; i < generatedParams.toArray().length; i++) {
+            if (generatedParams.get(i).getProgression() < generatedParams.get(i - 1).getProgression()) {
                 throw new IllegalArgumentException(
                         "Feedforward LUT progression keys must be ordered from low to high."
                 );
@@ -44,20 +46,20 @@ public class FeedforwardLut {
      * @return interpolated motion parameters for the follower
      */
     public MotionParameters getFeedforwardParams(double progression) {
-        if (params.length == 1 || progression <= params[0].getProgression()) {
-            return copyOf(params[0]);
+        if (params.toArray().length == 1 || progression <= params.get(0).getProgression()) {
+            return copyOf(params.get(0));
         }
 
-        MotionParameters last = params[params.length - 1];
+        MotionParameters last = params.get(params.toArray().length - 1);
         if (progression >= last.getProgression()) {
             return copyOf(last);
         }
 
         // Find the first sample at or beyond the requested progression.
-        for (int i = 1; i < params.length; i++) {
-            if (progression <= params[i].getProgression()) {
-                MotionParameters params1 = params[i - 1];
-                MotionParameters params2 = params[i];
+        for (int i = 1; i < params.toArray().length; i++) {
+            if (progression <= params.get(i).getProgression()) {
+                MotionParameters params1 = params.get(i - 1);
+                MotionParameters params2 = params.get(i);
                 double s0 = params1.getProgression();
                 double s1 = params2.getProgression();
                 double denominator = s1 - s0;
