@@ -92,7 +92,6 @@ public class FollowerConstants {
                     json.optString("drivetrainType", drivetrainType.toString())
             );
         } catch (IllegalArgumentException ignored) {
-            // Preserve the safe in-code default when an old/corrupt JSON value is encountered.
         }
 
         headingCoeffs.setkP(json.optDouble("headingP", 0.0));
@@ -103,7 +102,6 @@ public class FollowerConstants {
         translationalCoeffs.setkD(json.optDouble("translationalD", 0.0));
         translationalCoeffs.setkS(json.optDouble("translationalS", 0.0));
 
-        // Old files used one controller for both axes. Preserve that as the migration fallback.
         lateralCoeffs.setkP(
                 json.optDouble("lateralP", translationalCoeffs.kP)
         );

@@ -40,7 +40,6 @@ public class DriveEncoders extends BaseLocalizer<DriveEncoders.Constants>{
         backLeft.update();
         backRight.update();
 
-        // Apex convention: +X is forward and +Y is left/strafe.
         double deltaX = (frontLeft.getDeltaInches() + frontRight.getDeltaInches() +
                 backLeft.getDeltaInches() + backRight.getDeltaInches()) / 4.0;
         double deltaY = (-frontLeft.getDeltaInches() + frontRight.getDeltaInches() +

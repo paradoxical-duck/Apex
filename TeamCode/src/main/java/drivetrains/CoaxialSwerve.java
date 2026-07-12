@@ -155,7 +155,6 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
         return constants.steeringCoefficients;
     }
 
-    /** Holds every module at one angle with drive motors disabled; intended only for tuning. */
     public void aimModules(Angle target) {
         double[] angles = moduleAngles();
         PDSController[] controllers = {flSteerController, frSteerController,
@@ -256,7 +255,6 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
             return this;
         }
 
-        /** Sets the independently calibrated absolute-encoder offset for each module. */
         public Constants setOffsetAngles(Angle fl, Angle fr, Angle bl, Angle br) {
             this.flOffsetAngle = fl;
             this.frOffsetAngle = fr;

@@ -66,8 +66,6 @@ public class OdometryPod {
     }
 
     public void resetEncoder() {
-        // Reset this local integration baseline without changing the hardware run mode. Pods may
-        // share a drive motor, and STOP_AND_RESET_ENCODER would otherwise leave that motor stopped.
         currentTicks = odometry.getCurrentPosition();
         tickCountLastLoop = currentTicks;
         deltaTicks = 0.0;

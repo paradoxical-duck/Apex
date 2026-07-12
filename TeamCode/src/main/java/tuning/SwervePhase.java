@@ -7,7 +7,6 @@ import controllers.PDSController.PDSCoefficients;
 import drivetrains.CoaxialSwerve;
 import geometry.Angle;
 
-/** Coaxial swerve offset and steering phase for FollowerTuner. */
 public class SwervePhase extends TunerPhase {
     private static final String[] MODULES = {"FL", "FR", "BL", "BR"};
     private static final double[] AUTO_TARGETS = {0.0, 90.0, -90.0, 0.0};

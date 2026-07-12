@@ -39,7 +39,6 @@ public class FeedforwardCalc {
                     kS >= 0.0 && kS < 0.5 && kV > 0.0 && kA > 0.0 && rSquared >= 0.75;
         }
 
-        /** Initial position-loop PDS gains for the fitted second-order plant. */
         public PDSCoefficients positionGains(double settlingTimeSeconds) {
             double damping = 0.90;
             double naturalFrequency = 4.0 / (damping * settlingTimeSeconds);
@@ -49,7 +48,6 @@ public class FeedforwardCalc {
             return new PDSCoefficients(kP, kD, kS, 0.0);
         }
 
-        /** Velocity error gain for the requested closed-loop time constant. */
         public double velocityGain(double timeConstantSeconds) {
             return Math.max(0.0, (kA / timeConstantSeconds) - kV);
         }
