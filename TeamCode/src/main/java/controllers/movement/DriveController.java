@@ -37,8 +37,8 @@ public class DriveController {
     private final Dist tolerance;
 
     public DriveController(Dist maxForwardVelocity, Dist maxStrafeVelocity,
-                           PDSController.PDSCoefficients coefficients,
-                           Dist tolerance, boolean requireMecanumLimits) {
+                           PDSController.PDSCoefficients coefficients, Dist tolerance,
+                           boolean requireMecanumLimits) {
         this.tolerance = tolerance;
 
         double forwardVelocity = maxForwardVelocity.getIn();
@@ -56,7 +56,6 @@ public class DriveController {
         endDistancePds = new PDSController(coefficients);
         turnPositionPds = new PDSController(coefficients);
     }
-
 
     /** Returns an unallocated field-centric correction toward a fixed position. */
     public Vector calculatePointToPoint(Vector targetPos, Vector currentPos) {

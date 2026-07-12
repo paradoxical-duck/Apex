@@ -27,8 +27,6 @@ public abstract class BaseDrivetrainConstants<T extends BaseDrivetrainConstants<
     public MotorFactory brMotorConfig = null;
 
     public double maxPower = 1.0;
-    public boolean voltageCompensationEnabled = true;
-    public double nominalVoltage = 12.0;
     public Angle headingTolerance = Angle.fromDeg(1.0);
     public Dist distanceTolerance = Dist.fromIn(0.5);
 
@@ -44,14 +42,7 @@ public abstract class BaseDrivetrainConstants<T extends BaseDrivetrainConstants<
     /** Set the maximum motor output limit for the drivetrain. The default is 1.0. */
     @SuppressWarnings("unchecked")
     public T setMaxPower(double maxPower) {
-        this.maxPower = Math.max(0.0, Math.min(maxPower, 1.0));
-        return (T) this;
-    }
-
-    @SuppressWarnings("unchecked")
-    public T setVoltageCompensation(boolean enabled, double nominalVoltage) {
-        this.voltageCompensationEnabled = enabled;
-        this.nominalVoltage = Math.max(8, Math.min(nominalVoltage, 15));
+        this.maxPower = Math.max(Math.min(0.0, maxPower), 1.0);
         return (T) this;
     }
 

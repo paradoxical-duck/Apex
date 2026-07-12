@@ -3,7 +3,6 @@ package tuning;
 import android.os.Environment;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.json.JSONArray;
@@ -37,24 +36,8 @@ public class TunerContext {
 
     public Follower getFollower() { return follower; }
     public Telemetry getTelemetry() { return opMode.telemetry; }
-    public Gamepad getGamepad() { return opMode.gamepad1; }
 
-    public void driveAxis(TunerAxis axis, double power) {
-        switch (axis) {
-            case FORWARD:
-                follower.getDrivetrain().moveWithVectors(power, 0, 0);
-                break;
-            case STRAFE:
-                if (!follower.getDrivetrain().isHolonomic()) {
-                    throw new IllegalStateException("Strafe characterization requires a holonomic drivetrain.");
-                }
-                follower.getDrivetrain().moveWithVectors(0, power, 0);
-                break;
-            case ANGULAR:
-                follower.getDrivetrain().moveWithVectors(0, 0, power);
-                break;
-        }
-    }
+    public void stopDrive() { follower.teleOpDrive(0, 0, 0); }
 
     public void saveConstants() {
         JSONObject constantsJSON = constants.toJson();

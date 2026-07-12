@@ -1,5 +1,6 @@
 package localizers;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -66,9 +67,8 @@ public class OdometryPod {
     }
 
     public void resetEncoder() {
-        currentTicks = odometry.getCurrentPosition();
-        tickCountLastLoop = currentTicks;
-        deltaTicks = 0.0;
+        tickCountLastLoop = 0;
+        odometry.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
     /**
@@ -85,3 +85,4 @@ public class OdometryPod {
         return deltaTicks / conversionToInches;
     }
 }
+

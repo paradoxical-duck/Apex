@@ -27,7 +27,9 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
     private final PDSController flSteerController, frSteerController, blSteerController,
             brSteerController;
     private final double voltageToRad; // Radians = voltage * this
-    private final double[] offsetAnglesRad; // Per-module radians added to raw encoder angle
+    private final double offsetAngleRad; // Radians added to encoder angle to get actual wheel angle
+
+    private double lastFlError = 0, lastFrError = 0, lastBlError = 0, lastBrError = 0;
 
     public CoaxialSwerve(Constants constants, HardwareMap hardwareMap) {
         super(constants, hardwareMap, DrivetrainType.COAXIAL_SWERVE);
@@ -65,11 +67,8 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
         blSteerController = new PDSController(constants.steeringCoefficients);
         brSteerController = new PDSController(constants.steeringCoefficients);
 
-        voltageToRad = (pi2) / flEncoder.getMaxVoltage();
-        offsetAnglesRad = new double[]{
-                constants.flOffsetAngle.getRad(), constants.frOffsetAngle.getRad(),
-                constants.blOffsetAngle.getRad(), constants.brOffsetAngle.getRad()
-        };
+        voltageToRad = (2 * Math.PI) / flEncoder.getMaxVoltage();
+        offsetAngleRad = constants.offsetAngle.getRad();
     }
 
     @Override
@@ -93,11 +92,10 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
         double blAngleTarget = Math.atan2(strafeRear, forwardLeft);
         double brAngleTarget = Math.atan2(strafeRear, forwardRight);
 
-        double[] moduleAngles = moduleAngles();
-        double flAngle = moduleAngles[0];
-        double frAngle = moduleAngles[1];
-        double blAngle = moduleAngles[2];
-        double brAngle = moduleAngles[3];
+        double flAngle = Angle.normalize(flEncoder.getVoltage() * voltageToRad + offsetAngleRad);
+        double frAngle = Angle.normalize(frEncoder.getVoltage() * voltageToRad + offsetAngleRad);
+        double blAngle = Angle.normalize(blEncoder.getVoltage() * voltageToRad + offsetAngleRad);
+        double brAngle = Angle.normalize(brEncoder.getVoltage() * voltageToRad + offsetAngleRad);
 
         double flError = wrapError(flAngleTarget, flAngle);
         double frError = wrapError(frAngleTarget, frAngle);
@@ -122,10 +120,22 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
             brError -= Math.copySign(Math.PI, brError);
         }
 
-        flServo.setPower(flSteerController.calculateFromError(flError));
-        frServo.setPower(frSteerController.calculateFromError(frError));
-        blServo.setPower(blSteerController.calculateFromError(blError));
-        brServo.setPower(brSteerController.calculateFromError(brError));
+        if (flError != lastFlError) {
+            flServo.setPower(flSteerController.calculateFromError(flError));
+            lastFlError = flError;
+        }
+        if (frError != lastFrError) {
+            frServo.setPower(frSteerController.calculateFromError(frError));
+            lastFrError = frError;
+        }
+        if (blError != lastBlError) {
+            blServo.setPower(blSteerController.calculateFromError(blError));
+            lastBlError = blError;
+        }
+        if (brError != lastBrError) {
+            brServo.setPower(brSteerController.calculateFromError(brError));
+            lastBrError = brError;
+        }
 
         setPowers(flPower, frPower, blPower, brPower);
     }
@@ -136,41 +146,6 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
         return errorRaw - (pi2 * Math.round(errorRaw / pi2));
     }
 
-    public double[] rawAngles() {
-        return new double[]{
-                Angle.normalize(flEncoder.getVoltage() * voltageToRad),
-                Angle.normalize(frEncoder.getVoltage() * voltageToRad),
-                Angle.normalize(blEncoder.getVoltage() * voltageToRad),
-                Angle.normalize(brEncoder.getVoltage() * voltageToRad)
-        };
-    }
-
-    public double[] moduleAngles() {
-        double[] raw = rawAngles();
-        for (int i = 0; i < raw.length; i++) raw[i] = Angle.normalize(raw[i] + offsetAnglesRad[i]);
-        return raw;
-    }
-
-    public PDSCoefficients getSteeringGains() {
-        return constants.steeringCoefficients;
-    }
-
-    public void aimModules(Angle target) {
-        double[] angles = moduleAngles();
-        PDSController[] controllers = {flSteerController, frSteerController,
-                blSteerController, brSteerController};
-        CRServo[] servos = {flServo, frServo, blServo, brServo};
-        for (int i = 0; i < servos.length; i++) {
-            servos[i].setPower(controllers[i].calculateFromError(
-                    wrapError(target.getRad(), angles[i])));
-        }
-        setPowers(0, 0, 0, 0);
-    }
-
-    public void stopSteering() {
-        flServo.setPower(0); frServo.setPower(0); blServo.setPower(0); brServo.setPower(0);
-    }
-
     /** Configuration class for Coaxial Swerve drivetrain. */
     public static class Constants extends BaseDrivetrainConstants<Constants> {
         public String flServoName, frServoName, blServoName, brServoName = "defaultServoName";
@@ -179,10 +154,7 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
 
         public PDSCoefficients steeringCoefficients = new PDSCoefficients();
 
-        public Angle flOffsetAngle = Angle.zero();
-        public Angle frOffsetAngle = Angle.zero();
-        public Angle blOffsetAngle = Angle.zero();
-        public Angle brOffsetAngle = Angle.zero();
+        public Angle offsetAngle = Angle.zero(); // Encoder value facing forward position
         public Dist wheelbase = Dist.fromIn(14); // Front pod to back pod spacing
         public Dist trackWidth = Dist.fromIn(14); // Left pod to right pod spacing
         public Dist diagonalDist;
@@ -248,18 +220,7 @@ public class CoaxialSwerve extends BaseDrivetrain<CoaxialSwerve.Constants> {
 
         /** Sets the encoders reported angle when the wheel is facing forward. */
         public Constants setOffsetAngle(Angle offsetAngle) {
-            this.flOffsetAngle = offsetAngle;
-            this.frOffsetAngle = offsetAngle;
-            this.blOffsetAngle = offsetAngle;
-            this.brOffsetAngle = offsetAngle;
-            return this;
-        }
-
-        public Constants setOffsetAngles(Angle fl, Angle fr, Angle bl, Angle br) {
-            this.flOffsetAngle = fl;
-            this.frOffsetAngle = fr;
-            this.blOffsetAngle = bl;
-            this.brOffsetAngle = br;
+            this.offsetAngle = offsetAngle;
             return this;
         }
 
