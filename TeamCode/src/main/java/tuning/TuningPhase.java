@@ -42,6 +42,7 @@ public abstract class TuningPhase {
 
                 if (complete) {
                     state = State.COMPLETE;
+                    context.getFollower().stop();
                 }
                 break;
             case COMPLETE:
@@ -148,9 +149,7 @@ public abstract class TuningPhase {
             this.guess = (maxGuess + minGuess) / 2;
         }
 
-        /**
-         * @return false if the guess has converged and the search should stop, true otherwise
-         */
+        /** @return false if the guess has converged and the search should stop, true otherwise */
         public boolean updateGuess(boolean increase) {
             double lastGuess = guess;
             if (increase) {
@@ -163,29 +162,29 @@ public abstract class TuningPhase {
             return !(Math.abs(lastGuess - guess) <= convergenceThreshold);
         }
 
-        /**
-         * @return the current guess value
-         */
-        public double getGuess() {
-            return guess;
-        }
+        /** @return the current guess value */
+        public double getGuess() { return guess; }
     }
 
     protected static class PDSRoutine {
-        final double HAS_MOVED_THRESHOLD = 0.025;
-        final double HAS_MOVED_THRESHOLD_HEADING = 0.01;
-        final double TIME_PER_GUESS_MS = 500;
+        final double HAS_MOVED_THRESHOLD = 0.05; // Inches
+        final double HAS_MOVED_THRESHOLD_HEADING = 0.02; // Radians
+        final double TIME_PER_GUESS_MS = 1500;
+        final double SETTLING_DURATION_MS = 750;
         final double PD_TUNER_DURATION = 2000;
+
+        public enum State { TUNING_KS, SETTLING_BETWEEN_KS, SETTLING_FOR_PD, TUNING_PD }
+        private State currentState = State.TUNING_KS;
 
         private final Axis axis;
         private final ElapsedTime timer = new ElapsedTime();
         private final PDSController controller;
         private final BinarySearch kSSearch;
+        private final double threshold;
 
-        private boolean tuningKS = true;
         private double startTime = 0;
-        private double maxAccel = 0; // inches/radians per second squared
-        private double velAtTimestamp = 0; // inches/radians per second
+        private double maxAccel = 0;
+        private double velAtTimestamp = 0;
         private double timestamp = 0;
 
         public enum Axis { DRIVE, STRAFE, HEADING }
@@ -198,11 +197,15 @@ public abstract class TuningPhase {
 
             this.controller = new PDSController(new PDSCoefficients());
             if (this.axis == Axis.HEADING) { this.controller.setAngularController(); }
+
+            this.threshold = (axis == Axis.HEADING) ?
+                    HAS_MOVED_THRESHOLD_HEADING : HAS_MOVED_THRESHOLD;
         }
 
         public void start() {
             timer.reset();
             controller.getCoefficients().setkS(kSSearch.getGuess());
+            currentState = State.TUNING_KS;
         }
 
         private void moveInDirection(TunerContext context, double power) {
@@ -220,55 +223,84 @@ public abstract class TuningPhase {
         }
 
         public double getPoseAxis(Pose pose) {
-            double value = 0;
             switch (axis) {
                 case DRIVE:
-                    value = pose.getX().getIn();
-                    break;
+                    return pose.getX().getIn();
                 case STRAFE:
-                    value = pose.getY().getIn();
-                    break;
+                    return pose.getY().getIn();
                 case HEADING:
-                    value = pose.getHeading().getRad();
-                    break;
+                    return pose.getHeading().getRad();
+                default:
+                    return 0;
             }
-            return value;
         }
 
         public boolean update(TunerContext context) {
-            if (tuningKS) {
-                moveInDirection(context, controller.calculate(getPoseAxis(context.getFollower().getPose())));
-                if (timer.milliseconds() >= TIME_PER_GUESS_MS) {
-                    Pose pose = context.getFollower().getPose();
-                    tuningKS = !kSSearch.updateGuess(
-                            Math.abs(pose.getX().getIn()) > HAS_MOVED_THRESHOLD ||
-                                    Math.abs(pose.getY().getIn()) > HAS_MOVED_THRESHOLD ||
-                                    Math.abs(pose.getHeading().getRad()) > HAS_MOVED_THRESHOLD_HEADING
-                    );
-                    if (tuningKS) {
-                        controller.getCoefficients().setkS(kSSearch.getGuess());
-                    } else { // Moving to PD
+            switch (currentState) {
+                case TUNING_KS:
+                    moveInDirection(context, kSSearch.getGuess());
+                    if (timer.milliseconds() >= TIME_PER_GUESS_MS) {
+                        Pose pose = context.getFollower().getPose();
+                        double currentMovement = Math.abs(getPoseAxis(pose));
+
+                        boolean keepTuning = kSSearch.updateGuess(currentMovement <= threshold);
+
+                        if (keepTuning) {
+                            currentState = State.SETTLING_BETWEEN_KS;
+                        } else {
+                            controller.getCoefficients().setkS(kSSearch.getGuess()); // Save final kS
+                            currentState = State.SETTLING_FOR_PD;
+                        }
+
+                        timer.reset();
+                    }
+                    break;
+                case SETTLING_BETWEEN_KS:
+                    context.getFollower().stop();
+                    if (timer.milliseconds() >= SETTLING_DURATION_MS) {
+                        currentState = State.TUNING_KS;
+                        timer.reset();
+                        context.getFollower().setPose(Pose.zero());
+                    }
+                    break;
+
+                case SETTLING_FOR_PD:
+                    context.getFollower().stop();
+                    if (timer.milliseconds() >= SETTLING_DURATION_MS) {
+                        currentState = State.TUNING_PD;
+                        timer.reset();
                         startTime = System.nanoTime();
                     }
-                    timer.reset();
-                    context.getFollower().setPose(Pose.zero());
-                    context.getFollower().stop();
-                }
-            } else { // Tuning PD
-                moveInDirection(context, 1.0);
-                double accel = getPoseAxis(context.getFollower().getAcceleration());
-                if (accel > maxAccel) {
-                    maxAccel = accel;
-                    timestamp = (System.nanoTime() - startTime) / 1.0e9;
-                    velAtTimestamp = getPoseAxis(context.getFollower().getVelocity());
-                }
-                if (timer.milliseconds() >= PD_TUNER_DURATION) {
-                    // Derive kP and kD using Ziegler-Nichols formulas
-                    double L = timestamp - (velAtTimestamp / maxAccel); // Delay time
-                    controller.getCoefficients().setkP(1.2 / (L * maxAccel));
-                    controller.getCoefficients().setkD(0.6 / maxAccel);
-                    return true;
-                }
+                    break;
+
+                case TUNING_PD:
+                    moveInDirection(context, 1.0);
+                    double accel = getPoseAxis(context.getFollower().getAcceleration());
+
+                    if (accel > maxAccel) {
+                        maxAccel = accel;
+                        timestamp = (System.nanoTime() - startTime) / 1.0e9;
+                        velAtTimestamp = getPoseAxis(context.getFollower().getVelocity());
+                    }
+
+                    if (timer.milliseconds() >= PD_TUNER_DURATION) {
+                        context.getFollower().stop();
+
+                        if (maxAccel <= 0.001) {
+                            throw new RuntimeException(
+                                    "Max acceleration is zero or too low during tuning. check that " +
+                                            "your localizer is working properly.");
+                        }
+
+                        // Derive kP and kD using Ziegler-Nichols formulas
+                        double L = timestamp - (velAtTimestamp / maxAccel); // Delay time
+                        if (L <= 0.001) L = 0.001;
+
+                        controller.getCoefficients().setkP(1.2 / (L * maxAccel));
+                        controller.getCoefficients().setkD(0.6 / maxAccel);
+                        return true;
+                    }
+                    break;
             }
             return false;
         }

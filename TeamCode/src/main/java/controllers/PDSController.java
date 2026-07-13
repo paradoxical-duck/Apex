@@ -10,15 +10,26 @@ package controllers;
  * <li><b>kS</b> - minimum power (a constant power added in the error's direction to overcome
  * static forces)</li>
  * </ul>
+ *
  * <p>
- * Special thanks to Wolfpack Machina (18438) for inspiration for this controller <3
+ * The controller uses a soft sign function to smooth the minimum power term, which helps prevent
+ * overshooting and oscillation.
+ * </p>
+ *
+ * <p>
+ * Special thanks to Wolfpack Machina (18438) for inspiration for this controller
  * </p>
  *
  * @author Dylan B. - 18597 RoboClovers - Delta
  * @author DrPixelCat
  */
 public class PDSController extends Controller {
+    // TODO: I checked these on Desmos and it looks good, but they might need to be changed
+    public static final double LINEAR_SMOOTHING_CONSTANT = 0.7; // In
+    public static final double ANGULAR_SMOOTHING_CONSTANT = 0.07; // Rad
+
     private PDSCoefficients coeffs;
+    private double smoothingConstant = LINEAR_SMOOTHING_CONSTANT;
 
     // region Coefficients class
 
@@ -26,28 +37,26 @@ public class PDSController extends Controller {
      * A simple class to hold the PDSCoefficients for the PDSController.
      */
     public static class PDSCoefficients {
-        public double kP, kD, kS, kSDeadzone;
+        public double kP, kD, kS;
 
         /**
          * Creates a PDSCoefficients object with the given values. Check the
          * {@link PDSController controller} documentation for what each coefficient does.
          */
-        public PDSCoefficients(double kP, double kD, double kS, double kSDeadzone) {
+        public PDSCoefficients(double kP, double kD, double kS) {
             this.kP = kP;
             this.kD = kD;
             this.kS = kS;
-            this.kSDeadzone = kSDeadzone;
         }
 
         /**
          * Creates a PDSCoefficients object with all coefficients set to 0.
          */
-        public PDSCoefficients() { this(0.0, 0.0, 0.0, 0.0); }
+        public PDSCoefficients() { this(0.0, 0.0, 0.0); }
 
         public void setkP(double kP) { this.kP = kP; }
         public void setkD(double kD) { this.kD = kD; }
         public void setkS(double kS) { this.kS = kS; }
-        public void setkSDeadzone(double kSDeadzone) { this.kSDeadzone = kSDeadzone; }
     }
 
     // region Constructors and getters/setters
@@ -62,13 +71,18 @@ public class PDSController extends Controller {
     public PDSCoefficients getCoefficients() { return this.coeffs; }
 
     @Override
+    public void setAngularController() {
+        super.setAngularController();
+        this.smoothingConstant = ANGULAR_SMOOTHING_CONSTANT;
+    }
+
+    @Override
     protected double computeOutput(double error, double lastError, double deltaTime) {
         double proportional = this.coeffs.kP * error;
         double derivative = this.coeffs.kD * (timeAnomalyDetected ? 0.0 :
                 (error - lastError) / deltaTime);
-        double minimum =
-                this.coeffs.kS * Math.signum(error) * (Math.abs(error) > this.coeffs.kSDeadzone ?
-                        1.0 : 0.0);
+        double minimum = this.coeffs.kS * (error / (Math.abs(error) + smoothingConstant));
+
         return proportional + derivative + minimum;
     }
 }
