@@ -28,53 +28,52 @@ public abstract class TuningPhase {
     subPhase currentSubPhase = subPhase.PRE_TUNE_PHASE;
     public void run(LinearOpMode opMode) {
         this.opMode = opMode;
-        complete = false;
         currentSubPhase = subPhase.PRE_TUNE_PHASE;
-        manualMode = manualTuneIsPossible() && !autoTuneIsPossible();
-        boolean finished = false;
+        complete = false;
+        manualMode = false;
 
-        try {
-            while (opMode.opModeIsActive() && !finished) {
-                switch (currentSubPhase) {
-                    case PRE_TUNE_PHASE:
-                        opMode.telemetry.addLine(getPhaseName() + " phase initialized");
-                        if (manualTuneIsPossible() && autoTuneIsPossible()) {
-                            opMode.telemetry.addLine(
-                                    "Press B to toggle between automatic and manual tuning."
-                            );
-                            if (opMode.gamepad1.bWasPressed()) {
-                                manualMode = !manualMode;
-                            }
-                        }
-                        opMode.telemetry.addLine("Press A to advance and run the tuner.");
-                        opMode.telemetry.addData("Selected Mode", manualMode ? "Manual" : "Automatic");
-                        opMode.telemetry.update();
+        while (opMode.opModeIsActive()) {
+            switch (currentSubPhase) {
+                case PRE_TUNE_PHASE:
+                    opMode.telemetry.addLine(getPhaseName() + " phase initialized");
+                    opMode.telemetry.addLine("Press A to advance and run the tuner.");
+                    opMode.telemetry.addLine("Press B to toggle between automatic and manual tuning.");
+                    opMode.telemetry.addData("Selected Mode", manualMode ? "Manual" : "Automatic");
+                    opMode.telemetry.update();
 
-                        if (opMode.gamepad1.aWasPressed()) {
-                            init();
-                            currentSubPhase = subPhase.TUNING_PHASE;
-                        }
-                        break;
-                    case TUNING_PHASE:
-                        context.getFollower().update();
-                        complete = manualMode ? manualTune() : autoTune();
-                        if (complete) {
-                            context.getFollower().stop();
-                            currentSubPhase = subPhase.POST_TUNE_PHASE;
-                        }
-                        break;
-                    case POST_TUNE_PHASE:
-                        endLoop();
-                        if (opMode.gamepad1.bWasPressed()) {
-                            finished = true;
-                        }
-                        break;
-                }
-                opMode.idle();
+                    if (opMode.gamepad1.bWasPressed()) {
+                        manualMode = !manualMode;
+                    }
+
+                    if (opMode.gamepad1.aWasPressed()) {
+                        init();
+                        currentSubPhase = subPhase.TUNING_PHASE;
+                    }
+                    break;
+
+                case TUNING_PHASE:
+                    context.getFollower().update();
+                    complete = manualMode ? manualTune() : autoTune();
+
+                    if (complete) {
+                        context.getFollower().stop();
+                        currentSubPhase = subPhase.POST_TUNE_PHASE;
+                    }
+                    break;
+
+                case POST_TUNE_PHASE:
+                    endLoop();
+
+                    if (opMode.gamepad1.bWasPressed()) {
+                        return;
+                    }
+                    break;
             }
-        } finally {
-            context.getFollower().stop();
+
+            opMode.idle();
         }
+
+        context.getFollower().stop();
     }
 
     protected TuningPhase(TunerContext context) { this.context = context; }

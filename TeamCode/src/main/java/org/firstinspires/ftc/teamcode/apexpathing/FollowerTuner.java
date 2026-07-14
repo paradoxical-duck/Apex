@@ -29,25 +29,35 @@ public class FollowerTuner extends LinearOpMode {
     private int selectedPhaseIndex = 0;
     private static TuningPhase currentPhase = null;
 
-    enum Phase { HEADING_PDS, TRANSLATIONAL_PDS, VELOCITY_FEEDFORWARD, MOVEMENT_LIMITS }
-    private static final Phase[] phases = {
-            Phase.HEADING_PDS,
-            Phase.TRANSLATIONAL_PDS,
-            Phase.VELOCITY_FEEDFORWARD,
-            Phase.MOVEMENT_LIMITS
-    };
+    enum Phase {
+        HEADING_PDS,
+        TRANSLATIONAL_PDS,
+        VELOCITY_FEEDFORWARD,
+        MOVEMENT_LIMITS
+    }
+
+    private TuningPhase[] phases;
 
     @Override
     public void runOpMode() {
         context = new TunerContext(this);
         context.setFollower(new Follower(new Constants(), hardwareMap));
+
+        phases = new TuningPhase[]{
+                new HeadingPhase(context),
+                new TranslationalPhase(context),
+                new VelocityFeedforwardPhase(context),
+                new MovementLimitsPhase(context)
+        };
+
         resetPhaseSelection(); // Initialize the phase selector statuses
 
-        while (opModeInInit()) {
+        while (opModeInInit() && currentPhase == null) {
             TuningPhase selectedPhase = phaseSelector(); // Will remain null until a phase is selected
             if (selectedPhase != null) {
                 currentPhase = selectedPhase;
             }
+
             if (currentPhase != null) {
                 context.getFollower().setPose(Pose.zero());
                 telemetry.addLine("Press the start button to run the tuner");
@@ -58,21 +68,24 @@ public class FollowerTuner extends LinearOpMode {
 
         waitForStart();
 
-        while (opModeIsActive()) {
-            if (currentPhase == null) {
-                requestOpModeStop(); // OpMode stop was requested already, do nothing
-            }
-            context.getFollower().update();
-            boolean complete = currentPhase.update(gamepad1.aWasPressed(), gamepad1.bWasPressed());
+        while (opModeIsActive() && selectedPhaseIndex < phases.length) {
+            currentPhase = phases[selectedPhaseIndex];
+            context.getFollower().setPose(Pose.zero());
 
-            if (complete) {
-                currentPhase = null;
-                context.constants.drivetrainType = context.getFollower().getDrivetrain().getDrivetrainType();
+            currentPhase.run(this);
+
+            if (TuningPhase.complete) {
                 context.saveConstants();
+                selectedPhaseIndex++;
+            } else { // Running the tuning phaes failed so stop safely
                 requestOpModeStop();
+                return;
             }
-
         }
+
+        context.getFollower().stop();
+        currentPhase = null;
+        requestOpModeStop();
     }
 
     private void resetPhaseSelection() {
@@ -85,11 +98,16 @@ public class FollowerTuner extends LinearOpMode {
         String transStatus = translationalIsTuned ? "[✓]" : (headingIsTuned ? "[ ]" : "[X]");
         String velStatus = velocityFFIsTuned ? "[✓]" : (translationalIsTuned ? "[ ]" : "[X]");
         String movementStatus = movementLimitsIsTuned ? "[✓]" : (velocityFFIsTuned ? "[ ]" : "[X]");
+
         this.phaseSelectorStatuses = new String[]{
-                headingStatus, transStatus, velStatus, movementStatus
+                headingStatus,
+                transStatus,
+                velStatus,
+                movementStatus
         };
 
         this.selectedPhaseIndex = 0;
+
         for (int i = 0; i < phaseSelectorStatuses.length; i++) {
             if (phaseSelectorStatuses[i].equals("[ ]")) {
                 this.selectedPhaseIndex = i;
@@ -107,40 +125,43 @@ public class FollowerTuner extends LinearOpMode {
                         "[X] = Not available to tune (incomplete tuners before it)," +
                         "[!] = Next tuner to run. The cursor ('<') is here by default."
         );
-        telemetry.addLine("Use the DPad Up and Down buttons to cycle through phases, " +
-                "then press B to open the selected phase.");
+        telemetry.addLine(
+                "Use the Dpad Up and Down buttons to cycle through phases, " +
+                        "then press B to open the selected phase."
+        );
         telemetry.addLine();
 
         for (int i = 0; i < phases.length; i++) {
-            String cursor = (i == selectedPhaseIndex) ? " <" : "";
-            telemetry.addLine(phaseSelectorStatuses[i] + " " +
-                    phases[i].toString().replace("_", " ") + cursor);
+            String cursor = i == selectedPhaseIndex ? " <" : "";
+
+            telemetry.addLine(
+                    phaseSelectorStatuses[i] + " " +
+                            Phase.values()[i].toString().replace("_", " ") +
+                            cursor
+            );
         }
+
         telemetry.update();
 
         if (gamepad1.dpadUpWasPressed()) {
-            selectedPhaseIndex = (selectedPhaseIndex - 1 + phases.length) % phases.length;
+            selectedPhaseIndex =
+                    (selectedPhaseIndex - 1 + phases.length) % phases.length;
+
             // Don't allow selection of unavailable phases
             while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) {
-                selectedPhaseIndex = (selectedPhaseIndex - 1 + phases.length) % phases.length;
+                selectedPhaseIndex =
+                        (selectedPhaseIndex - 1 + phases.length) % phases.length;
             }
         } else if (gamepad1.dpadDownWasPressed()) {
-            selectedPhaseIndex = (selectedPhaseIndex + 1) % phases.length;
+            selectedPhaseIndex =
+                    (selectedPhaseIndex + 1) % phases.length;
+
             while (phaseSelectorStatuses[selectedPhaseIndex].equals("[X]")) {
-                selectedPhaseIndex = (selectedPhaseIndex + 1) % phases.length;
+                selectedPhaseIndex =
+                        (selectedPhaseIndex + 1) % phases.length;
             }
         } else if (gamepad1.bWasPressed()) {
-            Phase selectedPhase = phases[selectedPhaseIndex];
-            switch (selectedPhase) {
-                case HEADING_PDS:
-                    return new HeadingPhase(context);
-                case TRANSLATIONAL_PDS:
-                    return new TranslationalPhase(context);
-                case VELOCITY_FEEDFORWARD:
-                    return new VelocityFeedforwardPhase(context);
-                case MOVEMENT_LIMITS:
-                    return new MovementLimitsPhase(context);
-            }
+            return phases[selectedPhaseIndex];
         }
 
         return null; // Phase hasn't been selected yet
