@@ -24,12 +24,12 @@ public class TranslationalPhase extends TuningPhase {
     }
 
     @Override
-    protected boolean manualUpdate() {
+    protected boolean manualTune() {
         return false; // TODO: Implement manual tuning
     }
 
     @Override
-    protected boolean automaticUpdate() {
+    protected boolean autoTune() {
         boolean done = routine.update(context);
         if (done) { context.constants.translationalCoeffs = routine.getCoefficients(); }
         return done;

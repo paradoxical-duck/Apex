@@ -1,9 +1,12 @@
 package tuning;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+
 import controllers.PDSController.PDSCoefficients;
 
 public class HeadingPhase extends TuningPhase {
     private PDSRoutine routine;
+    subPhase currentSubPhase = subPhase.PRE_TUNE_PHASE;
 
     public HeadingPhase(TunerContext context) { super(context); }
 
@@ -23,14 +26,16 @@ public class HeadingPhase extends TuningPhase {
     }
 
     @Override
-    protected boolean manualUpdate() {
+    protected boolean manualTune() {
         return false; // TODO: Implement manual tuning
     }
 
     @Override
-    protected boolean automaticUpdate() {
+    protected boolean autoTune() {
         boolean done = routine.update(context);
-        if (done) { context.constants.headingCoeffs = routine.getCoefficients(); }
+        if (done) {
+            context.constants.headingCoeffs = routine.getCoefficients();
+        }
         return done;
     }
 

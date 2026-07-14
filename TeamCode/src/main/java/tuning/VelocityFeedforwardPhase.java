@@ -28,10 +28,10 @@ public class VelocityFeedforwardPhase extends TuningPhase {
     protected void init() { timer.reset(); }
 
     @Override
-    protected boolean manualUpdate() { return true; } // Manual tuning is not supported
+    protected boolean manualTune() { return true; } // Manual tuning is not supported
 
     @Override
-    protected boolean automaticUpdate() {
+    protected boolean autoTune() {
         context.getFollower().update();
         context.getFollower().getDrivetrain().moveWithVectors(0, 1.0, 0);
 

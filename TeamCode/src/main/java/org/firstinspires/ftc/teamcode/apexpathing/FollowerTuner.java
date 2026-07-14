@@ -23,11 +23,11 @@ import geometry.Pose;
 @Configurable
 @TeleOp(name = "Follower Tuner", group = "Apex Pathing Tuning")
 public class FollowerTuner extends LinearOpMode {
-    private final TunerContext context = new TunerContext(this);
+    private static TunerContext context;
 
     private String[] phaseSelectorStatuses;
     private int selectedPhaseIndex = 0;
-    private TuningPhase runningPhase = null;
+    private static TuningPhase currentPhase = null;
 
     enum Phase { HEADING_PDS, TRANSLATIONAL_PDS, VELOCITY_FEEDFORWARD, MOVEMENT_LIMITS }
     private static final Phase[] phases = {
@@ -39,44 +39,43 @@ public class FollowerTuner extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        context = new TunerContext(this);
         context.setFollower(new Follower(new Constants(), hardwareMap));
-        resetPhaseSelectionData(); // Initialize the phase selector statuses
+        resetPhaseSelection(); // Initialize the phase selector statuses
 
-        while (opModeInInit() && runningPhase == null) {
+        while (opModeInInit()) {
             TuningPhase selectedPhase = phaseSelector(); // Will remain null until a phase is selected
             if (selectedPhase != null) {
-                runningPhase = selectedPhase;
+                currentPhase = selectedPhase;
             }
-        }
-
-        if (runningPhase != null) {
-            context.getFollower().setPose(Pose.zero());
-            telemetry.addLine("Press the start button to run the tuner");
-            telemetry.addLine("Make sure you have adequate space to run the robot safely!");
-            telemetry.update();
-        } else {
-            requestOpModeStop(); // The OpMode was started without a phase, so we stop it
+            if (currentPhase != null) {
+                context.getFollower().setPose(Pose.zero());
+                telemetry.addLine("Press the start button to run the tuner");
+                telemetry.addLine("Make sure you have adequate space to run the robot safely!");
+                telemetry.update();
+            }
         }
 
         waitForStart();
 
         while (opModeIsActive()) {
-            if (runningPhase == null) {
-                continue; // OpMode stop was requested already, do nothing
+            if (currentPhase == null) {
+                requestOpModeStop(); // OpMode stop was requested already, do nothing
             }
             context.getFollower().update();
-            boolean complete = runningPhase.update(gamepad1.aWasPressed(), gamepad1.bWasPressed());
+            boolean complete = currentPhase.update(gamepad1.aWasPressed(), gamepad1.bWasPressed());
+
             if (complete) {
-                runningPhase = null;
-                context.constants.drivetrainType = context.getFollower().getDrivetrain()
-                        .getDrivetrainType();
+                currentPhase = null;
+                context.constants.drivetrainType = context.getFollower().getDrivetrain().getDrivetrainType();
                 context.saveConstants();
                 requestOpModeStop();
             }
+
         }
     }
 
-    private void resetPhaseSelectionData() {
+    private void resetPhaseSelection() {
         boolean headingIsTuned = context.constants.headingCoeffs.kP != 0.0;
         boolean translationalIsTuned = context.constants.translationalCoeffs.kP != 0.0;
         boolean velocityFFIsTuned = context.constants.translationalKV != 0.0;
@@ -106,7 +105,7 @@ public class FollowerTuner extends LinearOpMode {
         telemetry.addLine(
                 "[✓] = Already Tuned (you can still select to retune)," +
                         "[X] = Not available to tune (incomplete tuners before it)," +
-                        "[ ] = Next tuner to run. The cursor ('<') is here by default."
+                        "[!] = Next tuner to run. The cursor ('<') is here by default."
         );
         telemetry.addLine("Use the DPad Up and Down buttons to cycle through phases, " +
                 "then press B to open the selected phase.");

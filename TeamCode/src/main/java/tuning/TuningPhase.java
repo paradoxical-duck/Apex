@@ -1,5 +1,6 @@
 package tuning;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import controllers.PDSController.PDSCoefficients;
@@ -13,13 +14,44 @@ import geometry.Pose;
  * @author Dylan B. - 18597 RoboClovers - Delta
  */
 public abstract class TuningPhase {
+    enum State { INIT, RUNNING, COMPLETE }
     private State state = State.INIT;
     protected final TunerContext context;
-    private boolean manualMode;
+    public boolean manualMode;
+    LinearOpMode opMode;
+    public static boolean complete = false;
+    public enum subPhase {
+        PRE_TUNE_PHASE,
+        TUNING_PHASE,
+        POST_TUNE_PHASE
+    }
+    subPhase currentSubPhase = subPhase.PRE_TUNE_PHASE;
+    public void run(LinearOpMode opMode) {
+        this.opMode = opMode;
+        switch (currentSubPhase) {
+            case PRE_TUNE_PHASE:
+                opMode.telemetry.addLine("Press B to toggle between automatic and manual tuning.");
+                opMode.telemetry.addLine("Press A to advance and run the tuner.");
+                opMode.telemetry.addData("Manual Mode", manualMode);
+
+                if (opMode.gamepad1.x) {
+                    manualMode = !manualMode;
+                } else if (opMode.gamepad1.a) {
+                    currentSubPhase = subPhase.TUNING_PHASE;
+                }
+            case TUNING_PHASE:
+                complete = update(context);
+                if (complete) currentSubPhase = subPhase.POST_TUNE_PHASE;
+            case POST_TUNE_PHASE:
+                endLoop();
+                context.getFollower().stop();
+
+        }
+
+    }
 
     protected TuningPhase(TunerContext context) { this.context = context; }
 
-    enum State { INIT, RUNNING, COMPLETE }
 
     /**
      * Updates the tuning phase. This method should be called repeatedly until it returns true.
@@ -35,9 +67,9 @@ public abstract class TuningPhase {
             case RUNNING:
                 boolean complete;
                 if (manualMode) {
-                    complete = manualUpdate();
+                    complete = manualTune();
                 } else {
-                    complete = automaticUpdate();
+                    complete = autoTune();
                 }
 
                 if (complete) {
@@ -112,7 +144,7 @@ public abstract class TuningPhase {
      * returns true.
      * @return true if the manual tuning is complete, false otherwise
      */
-    protected abstract boolean manualUpdate();
+    protected abstract boolean manualTune();
 
     /**
      * This method should perform automatic tuning updates. It will be called repeatedly until it
@@ -120,7 +152,7 @@ public abstract class TuningPhase {
      *
      * @return true if the automatic tuning is complete, false otherwise
      */
-    protected abstract boolean automaticUpdate();
+    protected abstract boolean autoTune();
 
     /**
      * This method should use the telemetry (context.getTelemetry()) to report the results of

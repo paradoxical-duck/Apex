@@ -57,12 +57,12 @@ public class MovementLimitsPhase extends TuningPhase {
     }
 
     @Override
-    protected boolean manualUpdate() {
+    protected boolean manualTune() {
         return false; // TODO: Implement manual tuning
     }
 
     @Override
-    protected boolean automaticUpdate() {
+    protected boolean autoTune() {
         if (!context.getFollower().isBusy()) {
             if (forwardPathRunning) {
                 context.getFollower().follow(backwardCurve);
