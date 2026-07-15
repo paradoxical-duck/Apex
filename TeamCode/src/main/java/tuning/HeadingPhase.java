@@ -50,7 +50,7 @@ public class HeadingPhase extends TuningPhase {
     }
 
     @Override
-    protected void autoTune() {
+    protected void autoTuned() {
         if (!routine.update(context)) {
             return;
         }
@@ -61,7 +61,7 @@ public class HeadingPhase extends TuningPhase {
     }
 
     @Override
-    protected void manualTune() {
+    protected void manualTuned() {
         if (opMode.gamepad1.dpadLeftWasPressed()) {
             selected = (selected + 2) % 3;
         }

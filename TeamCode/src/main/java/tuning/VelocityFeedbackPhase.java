@@ -203,7 +203,7 @@ public class VelocityFeedbackPhase extends TuningPhase {
     }
 
     @Override
-    protected void autoTune() {
+    protected void autoTuned() {
         if (!updateTest()) {
             return;
         }
@@ -248,7 +248,7 @@ public class VelocityFeedbackPhase extends TuningPhase {
     }
 
     @Override
-    protected void manualTune() {
+    protected void manualTuned() {
         if (opMode.gamepad1.dpadLeftWasPressed() || opMode.gamepad1.dpadRightWasPressed()) {
             axis = axis == FeedbackAxis.TRANSLATION ? FeedbackAxis.ANGULAR : FeedbackAxis.TRANSLATION;
             startTest();

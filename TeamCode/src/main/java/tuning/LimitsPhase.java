@@ -226,7 +226,7 @@ public class LimitsPhase extends TuningPhase {
     }
 
     @Override
-    protected void autoTune() {
+    protected void autoTuned() {
         if (updateMeasurements()) {
             values.saveMovement(context);
             complete = true;
@@ -234,7 +234,7 @@ public class LimitsPhase extends TuningPhase {
     }
 
     @Override
-    protected void manualTune() {
+    protected void manualTuned() {
         if (!updateMeasurements()) {
             return;
         }

@@ -38,9 +38,9 @@ public abstract class TuningPhase {
                 case TUNING:
                     context.getFollower().update();
                     if (manualMode) {
-                        manualTune();
+                        manualTuned();
                     } else {
-                        autoTune();
+                        autoTuned();
                     }
                     if (isComplete()) {
                         context.getFollower().stop();
@@ -90,9 +90,9 @@ public abstract class TuningPhase {
 
     protected abstract void init();
 
-    protected abstract void manualTune();
+    protected abstract void manualTuned();
 
-    protected abstract void autoTune();
+    protected abstract void autoTuned();
 
     protected abstract void reportResults();
 }

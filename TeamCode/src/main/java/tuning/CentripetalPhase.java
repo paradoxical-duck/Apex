@@ -125,7 +125,7 @@ public class CentripetalPhase extends TuningPhase {
     }
 
     @Override
-    protected void autoTune() {
+    protected void autoTuned() {
         if (!updateTrial()) {
             return;
         }
@@ -145,7 +145,7 @@ public class CentripetalPhase extends TuningPhase {
     }
 
     @Override
-    protected void manualTune() {
+    protected void manualTuned() {
         boolean changed = false;
         if (opMode.gamepad1.dpadUpWasPressed()) {
             values.centripetal += manualStep;
